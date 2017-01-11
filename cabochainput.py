@@ -1,4 +1,4 @@
-import nlelement
+from . import nlelement
 
 def doc_to_format(document: nlelement.Document):
     """DocumentオブジェクトからCaboChaフォーマットを生成する

@@ -9,8 +9,8 @@ import glob
 import os
 import re
 from enum import Enum
-import nlelement
 import myprofiles
+from . import nlelement
 
 class LoadError(Exception):
     """KNBCの解析時に発生したエラーを上に伝える

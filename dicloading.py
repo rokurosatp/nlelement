@@ -1,5 +1,5 @@
 import sys
-import KNBCInput
+from . import KNBCInput
 from enum import Enum
 """辞書データを基にしたidの付与と辞書の構築を行う
 """
