@@ -69,13 +69,13 @@ class IdDictionaryList:
         """設定したディレクトリにある構築済み辞書からロード
         """
         targets = [
-            ('dic/word.def', self.word),
-            ('dic/wordbasic.def', self.word_base),
-            ('dic/pos.def', self.pos),
-            ('dic/netag.def', self.netag),
-            ('dic/case.def', self.case),
-            ('dic/conj.def', self.conj),
-            ('dic/case_id.def', self.case_id)
+            ('nlelement/dic/word.def', self.word),
+            ('nlelement/dic/wordbasic.def', self.word_base),
+            ('nlelement/dic/pos.def', self.pos),
+            ('nlelement/dic/netag.def', self.netag),
+            ('nlelement/dic/case.def', self.case),
+            ('nlelement/dic/conj.def', self.conj),
+            ('nlelement/dic/case_id.def', self.case_id)
         ]
         for target in targets:
             with open(target[0], 'r') as file:
@@ -87,12 +87,12 @@ class IdDictionaryList:
         """構築した辞書をファイルに保存
         """
         targets = [
-            ('dic/word.def', self.word),
-            ('dic/wordbasic.def', self.word_base),
-            ('dic/pos.def', self.pos),
-            ('dic/netag.def', self.netag),
-            ('dic/case.def', self.case),
-            ('dic/conj.def', self.conj),
+            ('nlelement/dic/word.def', self.word),
+            ('nlelement/dic/wordbasic.def', self.word_base),
+            ('nlelement/dic/pos.def', self.pos),
+            ('nlelement/dic/netag.def', self.netag),
+            ('nlelement/dic/case.def', self.case),
+            ('nlelement/dic/conj.def', self.conj),
         ]
         print('saving files')
         for target in targets:
