@@ -78,7 +78,7 @@ class IdDictionaryList:
             ('nlelement/dic/case_id.def', self.case_id)
         ]
         for target in targets:
-            with open(target[0], 'r') as file:
+            with open(target[0], 'r', encoding='utf-8') as file:
                 for line in file:
                     line = line[0:-1]
                     name_value = line.split(',')
@@ -97,7 +97,7 @@ class IdDictionaryList:
         print('saving files')
         for target in targets:
             print(target)
-            with open(target[0], 'w') as file:
+            with open(target[0], 'w', encoding='utf-8') as file:
                 print('length:'+str(len(target[1])))
                 for (key, value) in target[1].items():
                     file.write(key+','+str(value)+'\n')
