@@ -234,14 +234,15 @@ class Chunk:
         self.__set_chunk_type__()
     def __set_chunk_type__(self):
         """文節の種別をchunk_typeメンバに設定（意味役割付与タスク用の属性）
-        文節の種別はelem / verb / adjective / copulaに分けられる    
+        文節の種別はelem / verb / adjective / copulaに分けられる
         """
         self.chunk_type = 'elem'
         for token in self.tokens:
             if token.part == '動詞' and token.is_indep:
                 self.chunk_type = 'verb'
-            elif token.part == '形容詞' and token.is_indep:
+            elif re.match('(形容詞|形容動詞)', token.part) and token.is_indep:
                 self.chunk_type = 'adjective'
+                break
             # Chasen用(コピュラの検出は実質辞書依存なのでここに書くのはちょっと変か？
             elif token.attr1 == '特殊・ダ' or token.attr1 == '特殊・デス':
                 self.chunk_type = 'copula'
