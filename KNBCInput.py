@@ -9,7 +9,7 @@ import glob
 import os
 import re
 from enum import Enum
-from .. import myprofiles
+import myprofiles
 from . import nlelement
 
 class LoadError(Exception):
