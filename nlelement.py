@@ -1,3 +1,4 @@
+import re
 """
 KNBCの入力だけにとどまらなくなってきたので移動
 """
@@ -225,10 +226,28 @@ class Chunk:
         self.tags = []
         self.reverse_link_ids = []
         self.case = ''
+        self.chunk_type = ''
     def set_token_info(self):
         """追加された形態素の一覧から格などの属性を設定する
         """
         self.case = (self.get_func().surface) if __is_case__(self.get_func()) else ('')
+        self.__set_chunk_type__()
+    def __set_chunk_type__(self):
+        """文節の種別をchunk_typeメンバに設定（意味役割付与タスク用の属性）
+        文節の種別はelem / verb / adjective / copulaに分けられる    
+        """
+        self.chunk_type = 'elem'
+        for token in self.tokens:
+            if token.part == '動詞' and token.is_indep:
+                self.chunk_type = 'verb'
+            elif token.part == '形容詞' and token.is_indep:
+                self.chunk_type = 'adjective'
+            # Chasen用(コピュラの検出は実質辞書依存なのでここに書くのはちょっと変か？
+            elif token.attr1 == '特殊・ダ' or token.attr1 == '特殊・デス':
+                self.chunk_type = 'copula'
+            # JUMAN用(コピュラの検出は実質辞書依存なのでここに書くのはちょっと変か？
+            elif re.match('(ダ|デアル|デス)列', token.conj_form):
+                self.chunk_type = 'copula'
     def is_cand_all(self):
         """文節が先行詞の候補になりうるかの判定
         COMMENT:
@@ -318,6 +337,7 @@ class Token:
         self.part_id = 0
         self.attr1 = ''
         self.attr2 = ''
+        self.is_indep = False
         self.sahen = False
         self.normalnoun = False
         self.adjectivenoun = False

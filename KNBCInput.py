@@ -9,7 +9,7 @@ import glob
 import os
 import re
 from enum import Enum
-import myprofiles
+from .. import myprofiles
 from . import nlelement
 
 class LoadError(Exception):
@@ -520,15 +520,28 @@ class Token(nlelement.Token):
             self.conj_type = header[7]
             self.conj_form = header[9]
             self.other_features = other
+            # 内容語 / 機能語(func)の分別
             if '文節主辞' in self.other_features:
                 self.is_content = True
+            # 自立語 / 付属語の選別
+            if '自立' in self.other_features:
+                self.is_indep = True
+            # 固有表現の取得
             for feature in self.other_features:
                 if re.match('NE:', feature):
-                    ne_features = feature.split(':')
-                    (self.named_entity, self.named_entity_part) = (ne_features[1], ne_features[2] if len(ne_features) > 2 else '')
+                    self.__parse_ne_expr__(feature)
+                    break
         except Exception as inst:
             newinst = LoadError(inst=inst)
             newinst.problemed = str(header)
             newinst.input_line = expr
             newinst.token_i = tid
             raise newinst from inst
+    def __parse_ne_expr__(self, expr):
+        """引数で渡した固有表現タグをもとにした固有表現属性を形態素に設定
+        Args:
+            expr: 固有表現文字列(NE:ORGANIZATION)のような形式
+        """
+        ne_features = expr.split(':')
+        self.named_entity = ne_features[1]
+        self.named_entity_part = ne_features[2] if len(ne_features) > 2 else ''
