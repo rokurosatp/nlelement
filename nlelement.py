@@ -226,11 +226,25 @@ class Chunk:
         self.tags = []
         self.reverse_link_ids = []
         self.case = ''
+        self.particle = None
         self.chunk_type = ''
     def set_token_info(self):
         """追加された形態素の一覧から格などの属性を設定する
         """
-        self.case = (self.get_func().surface) if __is_case__(self.get_func()) else ('')
+        # 格/係助詞、格の付与
+        particles = self.get_func()
+        if all(lambda particle: particle.attr1 not in ['格助詞', '係助詞'], particles):
+            self.particle = None
+        else:
+            # 最後の格助詞あるいは係助詞を付加する
+            for particle in (filter(
+                    lambda particle: particle.attr1 not in ['格助詞', '係助詞'], particles
+                )):
+                self.particle = particle
+        if self.particle != None and __is_case__(self.particle):
+            self.case = self.particle.surface
+        else:
+            self.case = ''
         self.__set_chunk_type__()
     def __set_chunk_type__(self):
         """文節の種別をchunk_typeメンバに設定（意味役割付与タスク用の属性）
@@ -285,9 +299,9 @@ class Chunk:
             Token:機能語のトークン
         """
         if len(self.tokens) <= self.func_position:
-            return None
+            return []
         else:
-            return self.tokens[self.func_position]
+            return self.tokens[self.func_position:]
     def head_token(self):
         """戦闘の単語
         """
@@ -302,8 +316,11 @@ class Chunk:
         print('link :', str(self.link_id))
         print('token_num :', str(self.token_num))
         print('func_position :', str(self.func_position))
-        func = self.get_func()
-        print('func :', func.surface if func != None else '')
+        funcs = self.get_func()
+        for func in funcs:
+            print('func :', func.surface)
+        else:
+            print('func :')
         print('case :', self.case)
         for tag in self.tags:
             print(tag)
