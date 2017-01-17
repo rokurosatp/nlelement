@@ -233,7 +233,7 @@ class Chunk:
         """
         # 格/係助詞、格の付与
         particles = self.get_func()
-        if all(lambda particle: particle.attr1 not in ['格助詞', '係助詞'], particles):
+        if all((particle.attr1 not in ['格助詞', '係助詞'] for particle in particles)):
             self.particle = None
         else:
             # 最後の格助詞あるいは係助詞を付加する
