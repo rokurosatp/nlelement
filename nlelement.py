@@ -233,12 +233,13 @@ class Chunk:
         """
         # 格/係助詞、格の付与
         particles = self.get_func()
-        if all((particle.attr1 not in ['格助詞', '係助詞'] for particle in particles)):
+        # 係助詞「は」はJumanでは副助詞という名前で扱われる
+        if all((particle.attr1 not in {'格助詞', '係助詞', '副助詞'} for particle in particles)):
             self.particle = None
         else:
             # 最後の格助詞あるいは係助詞を付加する
             for particle in filter(
-                    lambda particle: particle.attr1 in ['格助詞', '係助詞'], particles
+                    lambda particle: particle.attr1 in {'格助詞', '係助詞', '副助詞'}, particles
                 ):
                 self.particle = particle
         if self.particle != None and __is_case__(self.particle):
@@ -269,6 +270,10 @@ class Chunk:
             基本機能ではないから再利用性を考えると分けておきたいな
         """
         return self.head_token() != None and self.head_token().part == '名詞'
+    def get_particle_surf(self):
+        """文節に助詞「格助詞、係助詞」があればその表層表現を返す
+        """
+        return self.particle.surface if self.particle is not None else ''
     def on_add_token(self, token):
         """トークンをチャンクに追加した際に追加したトークンに応じて属性値を変更する
         内容語の場合は機能表現の位置を+1するとか
