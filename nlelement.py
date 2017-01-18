@@ -237,9 +237,9 @@ class Chunk:
             self.particle = None
         else:
             # 最後の格助詞あるいは係助詞を付加する
-            for particle in (filter(
-                    lambda particle: particle.attr1 not in ['格助詞', '係助詞'], particles
-                )):
+            for particle in filter(
+                    lambda particle: particle.attr1 in ['格助詞', '係助詞'], particles
+                ):
                 self.particle = particle
         if self.particle != None and __is_case__(self.particle):
             self.case = self.particle.surface
