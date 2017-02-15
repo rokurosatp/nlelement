@@ -118,9 +118,9 @@ class Document(nlelement.Document):
         self.name = ''
         sentencelines = []
         for inputline in inputlines:
-            if inputline == 'EOT':
+            if inputline == 'EOT\n':
                 break
-            elif inputline == 'EOS':
+            elif inputline == 'EOS\n':
                 sentencelines.append(inputline)
                 self.sentences.append(Sentence(len(self.sentences), sentencelines))
                 sentencelines.clear()
@@ -287,6 +287,7 @@ def doc_to_format(document: nlelement.Document):
     for sentence in document.sentences:
         fmt_text += sent_to_format(sentence)
     fmt_text += 'EOT\n'
+    return fmt_text
 def sent_to_format(sentence: nlelement.Sentence):
     """SentenceオブジェクトからCaboChaフォーマットを生成する
     """
@@ -302,8 +303,8 @@ def chunk_to_format(chunk: nlelement.Chunk):
     """
     fmt_text = ''
     fmt_text += '* ' + '{0} {1}D '.format(chunk.cid, chunk.link_id)
-    fmt_text += '{0}/{1}'.format(chunk.func_position, chunk.token_num)
-    fmt_text += ' 0.000000\n'
+    fmt_text += '{0}/{1}'.format(chunk.func_position-1, chunk.func_position)
+    fmt_text += ' 0.00000\n'
     return fmt_text
 def token_to_format(token: nlelement.Token):
     """TokenオブジェクトからCaboCha(ほぼMeCab)フォーマットを生成する
@@ -315,12 +316,12 @@ def token_to_format(token: nlelement.Token):
     result += token.attr1 + ','
     result += token.attr2 + ','
     result += '*' + ','
-    result += token.conj_form + ','
     result += token.conj_type + ','
+    result += token.conj_form + ','
     result += token.basic_surface + ','
     result += token.read + ','
     result += token.read + '\t'
-    result += token.named_entity if token.named_entity != '' else '0'
+    result += token.named_entity if token.named_entity != '' else 'O'
     result += '\n'
     return result
         
