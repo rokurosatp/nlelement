@@ -192,7 +192,6 @@ class Chunk(nlelement.Chunk):
     """文節チャンクのクラス
     """
     def __init__(self, sid, cid, expr):
-        import sys
         """生情報を構造化する
         Args:
             sid (int): 文番号
@@ -203,12 +202,13 @@ class Chunk(nlelement.Chunk):
         (self.sid, self.cid) = (sid, cid)
         tokens = expr.split(' ')
         self.link_id = int(tokens[2][:-1])
-        
         token_func = tokens[3].split('/')
         if int(token_func[1]) != int(token_func[0]):
+            self.head_position = int(token_func[0])
             self.func_position = int(token_func[1])
         else:
-            self.func_position = int(token_func[1])+1
+            self.func_position = -1
+            self.head_position = int(token_func[0])
     def on_add_token(self, token):
         """トークンをチャンクに追加した際に追加したトークンに応じて属性値を変更する
         内容語の場合は機能表現の位置を+1するとか
@@ -303,7 +303,10 @@ def chunk_to_format(chunk: nlelement.Chunk):
     """
     fmt_text = ''
     fmt_text += '* ' + '{0} {1}D '.format(chunk.cid, chunk.link_id)
-    fmt_text += '{0}/{1}'.format(chunk.func_position-1, chunk.func_position)
+    if chunk.func_position == chunk.token_num:
+        fmt_text += '{0}/{1}'.format(chunk.head_position, chunk.head_position)
+    else:
+        fmt_text += '{0}/{1}'.format(chunk.head_position, chunk.func_position)
     fmt_text += ' 0.00000\n'
     return fmt_text
 def token_to_format(token: nlelement.Token):
@@ -321,7 +324,7 @@ def token_to_format(token: nlelement.Token):
     result += token.basic_surface + ','
     result += token.read + ','
     result += token.read + '\t'
-    result += token.named_entity if token.named_entity != '' else 'O'
+    result += 'B-'+token.named_entity if token.named_entity != '' else 'O'
     result += '\n'
     return result
         

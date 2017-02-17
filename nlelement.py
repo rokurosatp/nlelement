@@ -215,7 +215,7 @@ class Chunk:
         self.sid = 0
         self.cid = 0
         self.tokens = []
-        (self.func_position, self.token_num) = (0, 0)
+        (self.func_position, self.head_position, self.token_num) = (0, 0, 0)
         self.link_id = -1
         self.link = None
         self.reverse_links = []
@@ -281,6 +281,7 @@ class Chunk:
         """
         if token.is_content:
             self.func_position += 1
+            self.head_position = self.func_position - 1
         if token.surface == '「':
             self.begin_paren = True
             self.emphasis = True
