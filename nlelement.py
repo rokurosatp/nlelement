@@ -309,12 +309,15 @@ class Chunk:
         else:
             return self.tokens[self.func_position:]
     def head_token(self):
-        """先頭の単語
+        """単語の内容語を取得
+        文節中のfuncでない単語の中で末尾のもの
         """
         if len(self.tokens) == 0:
             return None
+        elif len(self.tokens) <= self.func_position:
+            return self.tokens[-1]
         else:
-            return self.tokens[0]
+            return self.tokens[self.func_position-1]
     def print_members(self):
         """オブジェクトのメンバ変数を標準出力に表示[デバッグ用]
         """
