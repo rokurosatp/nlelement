@@ -123,7 +123,7 @@ class IdDictionaryList:
                 for chunk in sent.chunks:
                     if chunk.case is not None and len(chunk.case) > 0:
                         self.case.add_value(chunk.case)
-                    if chunk.particle is not None and chunk.particle.attr1 == '係助詞':
+                    if chunk.particle is not None and chunk.particle.attr1 in {'係助詞', '副助詞'}:
                         self.connparticle.add_value(chunk.particle.surface)
 def main():
     pass
