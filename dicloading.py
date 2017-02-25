@@ -50,6 +50,7 @@ class IdDictionaryList:
         self.pos = IdDicionary()
         self.netag = IdDicionary()
         self.case = IdDicionary()
+        self.connparticle = IdDicionary()
         self.conj = IdDicionary()
         self.cl_rank = IdDicionary()
         self.cl_order = IdDicionary()
@@ -74,6 +75,7 @@ class IdDictionaryList:
             ('nlelement/dic/pos.def', self.pos),
             ('nlelement/dic/netag.def', self.netag),
             ('nlelement/dic/case.def', self.case),
+            ('nlelement/dic/connparticle.def', self.connparticle),
             ('nlelement/dic/conj.def', self.conj),
             ('nlelement/dic/case_id.def', self.case_id)
         ]
@@ -92,6 +94,7 @@ class IdDictionaryList:
             ('nlelement/dic/pos.def', self.pos),
             ('nlelement/dic/netag.def', self.netag),
             ('nlelement/dic/case.def', self.case),
+            ('nlelement/dic/connparticle.def', self.connparticle),
             ('nlelement/dic/conj.def', self.conj),
         ]
         print('saving files')
@@ -120,7 +123,8 @@ class IdDictionaryList:
                 for chunk in sent.chunks:
                     if chunk.case is not None and len(chunk.case) > 0:
                         self.case.add_value(chunk.case)
-
+                    if chunk.particle is not None and chunk.particle.attr1 == '係助詞':
+                        self.connparticle.add_value(chunk.particle.surface)
 def main():
     pass
 if __name__ == "__main__":
