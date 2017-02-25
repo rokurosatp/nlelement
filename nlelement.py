@@ -309,7 +309,7 @@ class Chunk:
         else:
             return self.tokens[self.func_position:]
     def head_token(self):
-        """戦闘の単語
+        """先頭の単語
         """
         if len(self.tokens) == 0:
             return None
