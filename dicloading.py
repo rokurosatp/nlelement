@@ -41,6 +41,7 @@ class DicAttributeId(Enum):
     cl_rank = 6
     cl_order = 7
     case_id = 8
+    connparticle = 9
 class IdDictionaryList:
     """コーパスから得られる単語やposタグなどの集合から生成した表現-IDの対応付けリスト
     """
@@ -65,6 +66,7 @@ class IdDictionaryList:
             DicAttributeId.cl_order : self.cl_rank,
             DicAttributeId.cl_rank : self.cl_order,
             DicAttributeId.case_id : self.case_id,
+            DicAttributeId.connparticle : self.connparticle,
         }
     def load(self):
         """設定したディレクトリにある構築済み辞書からロード
