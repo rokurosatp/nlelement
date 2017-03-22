@@ -1,4 +1,20 @@
 import re
+class ChunkReference:
+    def __init__(self, sid, cid):
+        self.sid = sid
+        self.cid = cid
+    def to_tuple(self):
+        return (self.sid, self.cid)
+    def __bool__(self):
+        return self.sid >= 0 or self.cid >= 0
+class TokenReference:
+    def __init__(self, sid, tid):
+        self.sid = sid
+        self.tid = tid
+    def to_tuple(self):
+        return (self.sid, self.tid)
+    def __bool__(self):
+        return self.sid >= 0 or self.tid >= 0
 """
 KNBCの入力だけにとどまらなくなってきたので移動
 """
@@ -61,6 +77,16 @@ class Document:
                             (feature_tuple[0], feature_tuple[1], feature_tuple[2], feature_tuple[3], case)
                         )
         return result
+    def refer(ref):
+        if isinstance(ref, ChunkReference):
+            if ref.sid >= 0 and ref.sid < len(self.sentences):
+                if ref.cid >= 0 and ref.cid < len(self.sentences[ref.sid].chunks):
+                    return self.sentences[ref.sid].chunks[ref.cid]
+        elif isinstance(ref, TokenReference):
+            if ref.sid >= 0 and ref.sid < len(self.sentences):
+                if ref.tid >= 0 and ref.tid < len(self.sentences[ref.sid].chunks):
+                    return self.sentences[ref.sid].tokens[ref.tid]
+        return None
     def refer_chunk(self, sid, cid):
         """文節番号から文節インスタンスへの参照を取得
         """
@@ -84,6 +110,7 @@ class Document:
         for sent in self.sentences:
             raw_sentence.append(sent.get_surface())
         return raw_sentence
+
 class Sentence:
     """
     文を格納するクラス
@@ -169,7 +196,7 @@ class CoreferenceEntry:
     """共参照関係のデータ
     文内の位置の参照なんだけど引数が爆増えするのでクラスを作ったほうがいいかもしれない
     """
-    def __init__(self, anaphora_sid, anaphora_cid, antecedent_sid, antecedent_cid, begin_token, end_token, surface):
+    def __init__(self, anaphora_ref, antecedent_ref, begin_token, end_token, surface):
         """初期化、生成するときは文内の番号を参照する。
         Args:
             anaphora_sid (int): 照応詞の文番号
@@ -180,32 +207,32 @@ class CoreferenceEntry:
             end_token (int): 未使用、文節内の単語を参照することになったらこれを使う文節単位の場合-1を指定
             surface (int): 先行詞の表層表現、文外照応の場合に先行詞を確認する用
         """
-        (self.anaphora_sid, self.anaphora_cid) = (anaphora_sid, anaphora_cid)
-        (self.antecedent_sid, self.antecedent_cid) = (antecedent_sid, antecedent_cid)
+        self.anaphora_ref = anaphora_ref
+        self.antecedent_ref = antecedent_ref
         (self.begin_token, self.end_token, self.surface) = (begin_token, end_token, surface)
     def is_in_sentence(self):
         """文内の照応かどうかを判定
         先行詞のsidとcidが負でなければ文章内で照応している
         """
-        return self.antecedent_sid >= 0 or self.antecedent_cid >= 0
+        return bool(self.antecedent_ref)
     def get_chunk(self, document):
         """先行詞の文節を取得
         """
-        return document.refer_chunk(self.antecedent_sid, self.antecedent_cid)
+        return document.refer(self.antecedent_ref)
     def get_chunk_from_sentence(self, sentence):
         """先行詞の文節を文の参照から取得
         """
         if self.is_in_sentence():
-            return sentence.chunks[self.antecedent_cid] if sentence.sid == self.antecedent_sid else None
+            return sentence.chunks[self.antecedent_ref.cid] if sentence.sid == self.antecedent_ref.sid else None
         return None
     def get_feature_tuple(self):
         """素性を直線化したタプルに変換
         """
-        return (self.antecedent_sid, self.antecedent_cid, self.anaphora_sid, self.anaphora_cid)
+        return (*self.antecedent_ref.to_tuple(), *self.anaphora_ref.to_tuple())
     def get_coref_surf(self, document):
         """先行詞の表層表現を取得
         """
-        return document.refer_chunk(self.antecedent_sid, self.antecedent_cid).get_surface()+ document.refer_chunk(self.anaphora_sid, self.anaphora_cid).get_surface()
+        return document.refer(self.antecedent_ref).get_surface()+ document.refer(self.anaphora_ref).get_surface()
 class Chunk:
     """文節チャンクのクラス
     """
@@ -314,10 +341,10 @@ class Chunk:
         """
         if len(self.tokens) == 0:
             return None
-        elif len(self.tokens) <= self.func_position:
+        elif len(self.tokens) <= self.func_position or self.func_position < 0:
             return self.tokens[-1]
         else:
-            return self.tokens[self.func_position-1]
+            return self.tokens[self.head_position]
     def print_members(self):
         """オブジェクトのメンバ変数を標準出力に表示[デバッグ用]
         """

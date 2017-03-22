@@ -197,6 +197,11 @@ class Chunk(nlelement.Chunk):
             sid (int): 文番号
             cid (int): 文節番号
             expr (int): 文節を記述したコーパス表現(アノテーション)の行
+        Description:
+            ちなみにCaboChaの文節フォーマットはこんな感じ
+            * 文節番号 係り先文節IDとその関係（基本D） 文節主辞ID/機能語ID スコア 
+            例
+            * 1 2D 0/0 0.00000
         """
         nlelement.Chunk.__init__(self)
         (self.sid, self.cid) = (sid, cid)
@@ -214,7 +219,7 @@ class Chunk(nlelement.Chunk):
         内容語の場合は機能表現の位置を+1するとか
         「」が入る場合、begin_paren end_paren emphasisの値が変更される
         """
-        if len(self.tokens) <= self.func_position:
+        if len(self.tokens) <= self.head_position + 1:
             token.is_content = True
         if token.surface == '「':
             self.begin_paren = True

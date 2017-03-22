@@ -411,8 +411,8 @@ def __is_case__(token):
 class CoreferenceEntry(nlelement.CoreferenceEntry):
     """参照解決のためにオーバーライドのないクラス継承をしてる。実はいらない子
     """
-    def __init__(self, anaphora_sid, anaphora_cid, antecedent_sid, antecedent_cid, begin_token, end_token, surface):
-        nlelement.CoreferenceEntry.__init__(self, anaphora_sid, anaphora_cid, antecedent_sid, antecedent_cid, begin_token, end_token, surface)
+    def __init__(self, anaphora_ref, antecedent_ref, begin_token, end_token, surface):
+        nlelement.CoreferenceEntry.__init__(self, anaphora_ref, antecedent_ref, begin_token, end_token, surface)
 def __get_depend_number__(expr):
     return int(expr.replace('D', '').replace('P', '').replace('I', ''))
 class Chunk(nlelement.Chunk):
@@ -452,7 +452,8 @@ class Chunk(nlelement.Chunk):
                 try:
                     name = items[2] if len(items) > 2 and len(items[2]) > 0 and items[2] != '=' else 'coref'
                     self.coreference_link[name] = CoreferenceEntry(
-                        self.sid, self.cid, self.sid-int(items[3]), int(items[4]), -1, -1, items[1]
+                        nlelement.ChunkReference(self.sid, self.cid), nlelement.ChunkReference(self.sid-int(items[3]), int(items[4])),
+                        -1, -1, items[1]
                     )
                 except IndexError as inst:
                     newinst = LoadError(inst=inst)
