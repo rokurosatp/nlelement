@@ -77,7 +77,7 @@ class Document:
                             (feature_tuple[0], feature_tuple[1], feature_tuple[2], feature_tuple[3], case)
                         )
         return result
-    def refer(ref):
+    def refer(self, ref):
         if isinstance(ref, ChunkReference):
             if ref.sid >= 0 and ref.sid < len(self.sentences):
                 if ref.cid >= 0 and ref.cid < len(self.sentences[ref.sid].chunks):
