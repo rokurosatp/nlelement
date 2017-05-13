@@ -12,6 +12,7 @@ from enum import Enum
 import myprofiles
 from . import nlelement
 
+
 class LoadError(Exception):
     """KNBCの解析時に発生したエラーを上に伝える
     """
@@ -77,19 +78,8 @@ class LoadError(Exception):
         if self.exception is not None:
             result_list.append(str(type(self.exception))+':'+str(self.exception))
         result = ''
-        result += join_with(result_list, '\n')
+        result += '\n'.join(result_list)
         return result
-def join_with(str_list, delim):
-    """テキストリストをデリミタを挟んで結合する
-    代替の関数がありそうなのであったら入れ替えよう
-    """
-    try:
-        result = str_list[0]
-    except IndexError:
-        return ''
-    for i in range(1, len(str_list)):
-        result += delim + str_list[i]
-    return result
 def pathexpr(expr):
     """パス表現を環境に応じて正規化
     """
@@ -489,7 +479,7 @@ def tokenline_tokenize(line: str):
             raise RuntimeError(str(toks[0]))
         for i in [0, 1, 2]:
             start_i = i * surf_yomi_token_len
-            toks[0][start_i] = join_with(toks[0][start_i:start_i+surf_yomi_token_len], ' ')
+            toks[0][start_i] = ' '.join(toks[0][start_i:start_i+surf_yomi_token_len])
         for i in [0, 1, 2]:
             start_i = i * (surf_yomi_token_len - 1)
             del toks[0][start_i+1:start_i+surf_yomi_token_len]
