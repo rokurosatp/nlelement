@@ -57,8 +57,8 @@ class Document:
         """
         for sent in self.sentences:
             print(sent.get_surface())
-            for chunk in sent.chunks:
-                for name, coref in chunk.coreference_link.items():
+            for token in sent.tokens:
+                for name, coref in token.coreference_link.items():
                     if name == 'coref':
                         coref_chunk = coref.get_chunk(self)
                         coref_surf = coref.surface
@@ -70,8 +70,8 @@ class Document:
         """
         result = []
         for sent in self.sentences:
-            for chunk in sent.chunks:
-                for name, coref in chunk.coreference_link.items():
+            for token in sent.tokens:
+                for name, coref in token.coreference_link.items():
                     if name == 'coref':
                         result.append(coref.get_feature_tuple())
         return result
@@ -85,8 +85,8 @@ class Document:
         }
         result = []
         for sent in self.sentences:
-            for chunk in sent.chunks:
-                for name, coref in chunk.coreference_link.items():
+            for token in sent.tokens:
+                for name, coref in token.coreference_link.items():
                     if name in case_normalize_table:
                         feature_tuple = coref.get_feature_tuple()
                         case = case_normalize_table[name]
@@ -201,6 +201,14 @@ class Sentence:
         for chunk in self.chunks:
             chunk.print_surfaces()
         print('')
+    def chunk_from_token(self, token):
+        """参照環境
+        """
+        for chunk in sentence.chunks:
+            if chunk.tokens:
+                if token.id <= chunk.tokens[-1].tid:
+                    return chunk
+        return None
     def reverse_link(self, chunk):
         """逆参照を取得するジェネレータ
         """
@@ -228,10 +236,8 @@ class CoreferenceEntry:
     def __init__(self, anaphora_ref, antecedent_ref, begin_token, end_token, surface):
         """初期化、生成するときは文内の番号を参照する。
         Args:
-            anaphora_sid (int): 照応詞の文番号
-            anaphora_cid (int): 照応詞の文節番号
-            antecedent_sid (int): 先行詞の文番号
-            antecedent_cid (int): 先行詞の文節番号
+            anaphora_ref (TokenReference): 照応詞の参照
+            antecedent_ref (TokenReference): 先行詞の参照
             begin_token (int): 未使用、文節内の単語を参照することになったらこれを使う文節単位の場合-1を指定
             end_token (int): 未使用、文節内の単語を参照することになったらこれを使う文節単位の場合-1を指定
             surface (int): 先行詞の表層表現、文外照応の場合に先行詞を確認する用
