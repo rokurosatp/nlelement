@@ -7,6 +7,10 @@ class ChunkReference:
         return (self.sid, self.cid)
     def __bool__(self):
         return self.sid >= 0 or self.cid >= 0
+    def __eq__(self, value):
+        return self.sid == value.sid and self.cid == value.cid
+    def __repr__(self):
+        return '<Ch:{0},{1}>'.format(self.sid, self.cid)
 class TokenReference:
     def __init__(self, sid, tid):
         self.sid = sid
@@ -15,6 +19,19 @@ class TokenReference:
         return (self.sid, self.tid)
     def __bool__(self):
         return self.sid >= 0 or self.tid >= 0
+    def __eq__(self, value):
+        return self.sid == value.sid and self.tid == value.tid
+    def __repr__(self):
+        return '<Tk:{0},{1}>'.format(self.sid, self.tid)
+
+def make_reference(element):
+    if isinstance(element, Chunk):
+        return ChunkReference(element.sid, element.cid)
+    elif isinstance(element, Token):
+        return TokenReference(element.sid, element.tid)
+    elif isinstance(element, Sentence):
+        return element.sid
+    return None
 """
 KNBCの入力だけにとどまらなくなってきたので移動
 """
@@ -79,14 +96,24 @@ class Document:
         return result
     def refer(self, ref):
         if isinstance(ref, ChunkReference):
-            if ref.sid >= 0 and ref.sid < len(self.sentences):
-                if ref.cid >= 0 and ref.cid < len(self.sentences[ref.sid].chunks):
-                    return self.sentences[ref.sid].chunks[ref.cid]
+            sentence = self.refer_sentence(ref.sid)
+            if sentence:
+                if ref.cid >= 0 and ref.cid < len(sentence.chunks):
+                    return sentence.chunks[ref.cid]
         elif isinstance(ref, TokenReference):
-            if ref.sid >= 0 and ref.sid < len(self.sentences):
-                if ref.tid >= 0 and ref.tid < len(self.sentences[ref.sid].chunks):
-                    return self.sentences[ref.sid].tokens[ref.tid]
+            sentence = self.refer_sentence(ref.sid)
+            if sentence:
+                if ref.tid >= 0 and ref.tid < len(sentence.tokens):
+                    return sentence.tokens[ref.tid]
+        elif isinstance(ref, int):
+            return self.refer_sentence(ref)
         return None
+    def refer_sentence(self, sid):
+        try:
+            sentence = next(filter(lambda x: x.sid == sid, self.sentences))
+        except StopIteration:
+            return None
+        return sentence
     def refer_chunk(self, sid, cid):
         """文節番号から文節インスタンスへの参照を取得
         """
@@ -179,14 +206,16 @@ class Sentence:
         """
         for link in chunk.reverse_link_ids:
             yield self.chunks[link]
+    def get_length(self):
+        return sum((token.get_length() for token in self.tokens))
     def get_surface(self):
         """表層表現を取得
         Returns:
             str: 表層表現の文字列
         """
         raw_sent = ''
-        for chunk in self.chunks:
-            raw_sent += chunk.get_surface()
+        for token in self.tokens:
+            raw_sent += token.surface
         return raw_sent
 def __is_case__(token):
     if token is None or token.part != '助詞' or token.attr1 != '格助詞':
@@ -274,6 +303,8 @@ class Chunk:
         else:
             self.case = ''
         self.__set_chunk_type__()
+    def get_length(self):
+        return sum((token.get_length() for token in self.tokens))
     def __set_chunk_type__(self):
         """文節の種別をchunk_typeメンバに設定（意味役割付与タスク用の属性）
         文節の種別はelem / verb / adjective / copulaに分けられる
@@ -402,6 +433,7 @@ class Token:
         self.conj_form = ''
         self.other_features = []
         self.is_content = False
+        self.coreference_link = {}
     def print_members(self):
         """オブジェクトのメンバ変数を標準出力に表示
         """
@@ -423,3 +455,181 @@ class Token:
         """表層表現を標準出力に表示
         """
         print(self.surface, end='')
+    def get_length(self):
+        return len(self.surface)
+    def __repr__(self):
+        members = dict()
+        members['id:'] = str(self.tid)
+        members['surf']=self.surface
+        members['read'] = self.read
+        members['base'] = self.basic_surface
+        members['part'] = self.part+'('+str(self.part_id)+')'
+        members['attr1:']=self.attr1
+        members['attr2:']=self.attr2
+        members['sahen:']=str(self.sahen)
+        members['normal:']=str(self.normalnoun)
+        members['adjnoun:']=str(self.adjectivenoun)
+        members['conj_type:']=self.conj_type
+        members['conj_form:']=self.conj_form
+        return repr(members)
+
+class ReferenceConverter:
+    """トークン、チャンクの参照をなるべく文字単位で正確に変換するためのクラス
+    """
+    def __init__(self, dest_doc, src_doc, count_func=None):
+        self.dest_doc = dest_doc
+        self.src_doc = src_doc
+        self.count_func = count_func
+        self.no_sid_convert = False
+    def __convert_cid_only__(self, cid, dest_sent, src_sent):
+        count = 0
+        for chunk in src_sent.chunks:
+            if chunk.cid == cid:
+                break
+            count += chunk.get_length() if self.count_func is None else self.count_func(chunk)
+        dest_cid = -1
+        dest_count = 0
+        for chunk in dest_sent.chunks:
+            if dest_count >= count:
+                dest_cid = chunk.cid
+                break
+            dest_count += chunk.get_length() if self.count_func is None else self.count_func(chunk)
+        return dest_cid
+    def __convert_tid_only__(self, tid, dest_sent, src_sent):
+        count = 0
+        for token in src_sent.tokens:
+            if token.tid == tid:
+                break
+            count += token.get_length() if self.count_func is None else self.count_func(token)
+        dest_tid = -1
+        dest_count = 0
+        for token in dest_sent.tokens:
+            if dest_count >= count:
+                dest_tid = token.tid
+                break
+            dest_count += token.get_length() if self.count_func is None else self.count_func(token)
+        return dest_tid
+
+    def __convert_cid__(self, sid, cid):
+        count = 0
+        for sent in self.src_doc.sentences:
+            if sent.sid == sid:
+                for chunk in sent.chunks:
+                    if chunk.cid == cid:
+                        break
+                    count += chunk.get_length() if self.count_func is None else self.count_func(chunk)
+                break
+            count += sent.get_length() if self.count_func is None else self.count_func(sent)
+        dest_sid = -1
+        dest_cid = -1
+        dest_count = 0
+        for sent in self.dest_doc.sentences:
+            length = sent.get_length() if self.count_func is None else self.count_func(sent)
+            if dest_count + length > count:
+                for chunk in sent.chunks:
+                    length = chunk.get_length() if self.count_func is None else self.count_func(chunk)
+                    if dest_count + length > count:
+                        dest_cid = chunk.cid
+                        break
+                    dest_count += length
+                dest_sid = sent.sid
+                break
+            dest_count += length
+        return dest_sid, dest_cid
+    def __convert_tid__(self, sid, tid):
+        count = 0
+        for sent in self.src_doc.sentences:
+            if sent.sid == sid:
+                for token in sent.tokens:
+                    if token.tid == tid:
+                        break
+                    count += token.get_length() if self.count_func is None else self.count_func(token)
+                    #print(token.surface, '({0})'.format(count))
+                break
+            count += sent.get_length() if self.count_func is None else self.count_func(sent)
+            #print(sent.get_surface(), '({0})'.format(count))
+        dest_sid = -1
+        dest_tid = -1
+        dest_count = 0
+        for sent in self.dest_doc.sentences:
+            length = sent.get_length() if self.count_func is None else self.count_func(sent)
+            if dest_count + length > count:
+                for token in sent.tokens:
+                    length = token.get_length() if self.count_func is None else self.count_func(token)
+                    if dest_count + length > count:
+                        dest_tid = token.tid
+                        break
+                    #print('@', token.surface, '({0},{1})'.format(dest_count+length, count))
+                    dest_count += length
+                dest_sid = sent.sid
+                break
+            #print('@', sent.get_surface(), '({0},{1})'.format(dest_count+length, count))
+            dest_count += length
+        return dest_sid, dest_tid
+    def convert(self, ref):
+        if isinstance(ref, ChunkReference):
+            if self.no_sid_convert:
+                dest_sid  = ref.sid
+                src_sent = self.src_doc.refer_sentence(ref.sid)
+                dest_sent = self.dest_doc.refer_sentence(dest_sid)
+                dest_cid = self.__convert_cid_only__(ref.cid, dest_sent, src_sent)
+                return ChunkReference(dest_sid, dest_cid)
+            else:
+                dest_sid, dest_cid = self.__convert_cid__(ref.sid, ref.cid)
+                return ChunkReference(dest_sid, dest_cid)
+        elif isinstance(ref, TokenReference):
+            if self.no_sid_convert:
+                dest_sid = ref.sid
+                src_sent = self.src_doc.refer_sentence(ref.sid)
+                dest_sent = self.dest_doc.refer_sentence(dest_sid)
+                dest_tid = self.__convert_tid_only__(ref.tid, dest_sent, src_sent)
+                return TokenReference(dest_sid, dest_tid)
+            else:
+                dest_sid, dest_tid = self.__convert_tid__(ref.sid, ref.tid)
+                return TokenReference(dest_sid, dest_tid)
+        return None
+
+class FlatNLElementIterator:
+    def __init__(self, document):
+        self.sentence_iter = iter(document.sentences)
+        self.cur_sent = None
+        self.elem_iter = None
+    def __get_next_elem__(self):
+        raise NotImplementedError
+    def __iter__(self):
+        return self
+    def __next__(self):
+        while True:
+            try:
+                if self.elem_iter is None:
+                    raise StopIteration
+                return next(self.elem_iter)
+            except StopIteration:
+                self.cur_sent = next(self.sentence_iter)
+                self.elem_iter = self.__get_next_elem__()
+                continue
+
+class FlatChunkIterator(FlatNLElementIterator):
+    def __get_next_elem__(self):
+        return iter(self.cur_sent.chunks)
+
+class FlatTokenIterator(FlatNLElementIterator):
+    def __get_next_elem__(self):
+        return iter(self.cur_sent.tokens)
+
+def tokens(elem):
+    if isinstance(elem, Document):
+        return FlatTokenIterator(elem)
+    elif isinstance(elem, Sentence):
+        return elem.tokens
+    elif isinstance(elem, Chunk):
+        return elem.tokens
+    raise NotImplementedError
+
+def chunks(elem):
+    if isinstance(elem, Document):
+        return FlatChunkIterator(elem)
+    elif isinstance(elem, Sentence):
+        return elem.chunks
+    raise NotImplementedError
+
