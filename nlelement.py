@@ -204,9 +204,9 @@ class Sentence:
     def chunk_from_token(self, token):
         """参照環境
         """
-        for chunk in sentence.chunks:
+        for chunk in self.chunks:
             if chunk.tokens:
-                if token.id <= chunk.tokens[-1].tid:
+                if token.tid <= chunk.tokens[-1].tid:
                     return chunk
         return None
     def reverse_link(self, chunk):
