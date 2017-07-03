@@ -302,6 +302,17 @@ class DatabaseLoader:
     def load(self):
         result = self.load_documents()
         return result
+
+    def get_names(self):
+        cursor = self.connector.cursor()
+        cursor.execute("SELECT NAME FROM DOCUMENTS")
+        while True:
+            result = cursor.fetchone()
+            if result is None:
+                break
+            yield result[0]
+        cursor.close()
+        
     def get_document_count(self):
         cursor = self.connector.cursor()
         cursor.execute("SELECT COUNT(*) FROM DOCUMENTS")
