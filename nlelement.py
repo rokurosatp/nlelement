@@ -80,7 +80,7 @@ class Document:
         """
         case_normalize_table = {
             'ガ':'ga',
-            'ヲ':'wo',
+            'ヲ':'o',
             '二':'ni',
         }
         result = []
@@ -90,6 +90,9 @@ class Document:
                     if name in case_normalize_table:
                         feature_tuple = coref.get_feature_tuple()
                         case = case_normalize_table[name]
+                    else:
+                        feature_tuple = coref.get_feature_tuple()
+                        case = name
                         result.append(
                             (feature_tuple[0], feature_tuple[1], feature_tuple[2], feature_tuple[3], case)
                         )
