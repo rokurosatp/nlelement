@@ -1,9 +1,9 @@
 import sqlite3
-from myprogress import myprogress
+from application import myprogress
 from . import nlelement
 
 class DatabaseLoader:
-    from nlelement.cabocha import part_id
+    from .cabocha import part_id 
     def __init__(self, filename):
         self.connector = sqlite3.connect(filename)
         self.chunkid_contains_list = dict()
