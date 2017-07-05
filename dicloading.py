@@ -1,5 +1,6 @@
 import sys
 from . import KNBCInput
+from . import bccwj, database
 from enum import Enum
 """辞書データを基にしたidの付与と辞書の構築を行う
 """
@@ -107,12 +108,11 @@ class IdDictionaryList:
                 for (key, value) in target[1].items():
                     file.write(key+','+str(value)+'\n')
                 file.close()
-    def load_from_corpus(self):
+    def load_from_corpus(self, loader):
         """辞書データをコーパスから構築
         """
-        loader = KNBCInput.KNBCLoader(KNBCInput.get_corpus_path())
         print('loading dic name')
-        for doc in loader:
+        for doc in loader.load_as_iter():
             print(doc.name)
             for sent in doc.sentences:
                 for token in sent.tokens:
