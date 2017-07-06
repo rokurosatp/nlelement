@@ -73,14 +73,14 @@ class IdDictionaryList:
         """設定したディレクトリにある構築済み辞書からロード
         """
         targets = [
-            ('nlelement/dic/word.def', self.word),
-            ('nlelement/dic/wordbasic.def', self.word_base),
-            ('nlelement/dic/pos.def', self.pos),
-            ('nlelement/dic/netag.def', self.netag),
-            ('nlelement/dic/case.def', self.case),
-            ('nlelement/dic/connparticle.def', self.connparticle),
-            ('nlelement/dic/conj.def', self.conj),
-            ('nlelement/dic/case_id.def', self.case_id)
+            ('dat/dic/defs/word.def', self.word),
+            ('dat/dic/defs/wordbasic.def', self.word_base),
+            ('dat/dic/defs/pos.def', self.pos),
+            ('dat/dic/defs/netag.def', self.netag),
+            ('dat/dic/defs/case.def', self.case),
+            ('dat/dic/defs/connparticle.def', self.connparticle),
+            ('dat/dic/defs/conj.def', self.conj),
+            ('dat/dic/defs/case_id.def', self.case_id)
         ]
         for target in targets:
             with open(target[0], 'r', encoding='utf-8') as file:
@@ -92,13 +92,13 @@ class IdDictionaryList:
         """構築した辞書をファイルに保存
         """
         targets = [
-            ('nlelement/dic/word.def', self.word),
-            ('nlelement/dic/wordbasic.def', self.word_base),
-            ('nlelement/dic/pos.def', self.pos),
-            ('nlelement/dic/netag.def', self.netag),
-            ('nlelement/dic/case.def', self.case),
-            ('nlelement/dic/connparticle.def', self.connparticle),
-            ('nlelement/dic/conj.def', self.conj),
+            ('dat/dic/defs/word.def', self.word),
+            ('dat/dic/defs/wordbasic.def', self.word_base),
+            ('dat/dic/defs/pos.def', self.pos),
+            ('dat/dic/defs/netag.def', self.netag),
+            ('dat/dic/defs/case.def', self.case),
+            ('dat/dic/defs/connparticle.def', self.connparticle),
+            ('dat/dic/defs/conj.def', self.conj),
         ]
         print('saving files')
         for target in targets:
