@@ -1,4 +1,4 @@
-import myprofiles
+from application import myprofiles
 
 def get_corpus_path():
     """コーパスのパスを取得

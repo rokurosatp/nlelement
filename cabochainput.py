@@ -10,7 +10,7 @@ import glob
 import os
 import re
 from enum import Enum
-import myprofiles
+from application import myprofiles
 from . import nlelement
 
 class LoadError(Exception):
