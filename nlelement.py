@@ -64,7 +64,7 @@ class Document:
                         coref_surf = coref.surface
                         if coref_chunk is not None:
                             coref_surf = coref_chunk.get_surface()
-                        print('\tana :', chunk.get_surface(), '\tant:', coref_surf)
+                        print('\tana :', token.get_surface(), '\tant:', coref_surf)
     def get_coreference_list(self):
         """文章内に存在する共参照関係を取得
         """
