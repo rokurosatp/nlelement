@@ -93,9 +93,9 @@ class Document:
                     else:
                         feature_tuple = coref.get_feature_tuple()
                         case = name
-                        result.append(
-                            (feature_tuple[0], feature_tuple[1], feature_tuple[2], feature_tuple[3], case)
-                        )
+                    result.append(
+                        (feature_tuple[0], feature_tuple[1], feature_tuple[2], feature_tuple[3], case)
+                    )
         return result
     def refer(self, ref):
         if isinstance(ref, ChunkReference):
