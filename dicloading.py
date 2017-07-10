@@ -1,4 +1,5 @@
 import sys
+import yaml
 from . import KNBCInput
 from . import bccwj, database
 from enum import Enum
@@ -43,6 +44,7 @@ class DicAttributeId(Enum):
     cl_order = 7
     case_id = 8
     connparticle = 9
+    semroles = 10
 class IdDictionaryList:
     """コーパスから得られる単語やposタグなどの集合から生成した表現-IDの対応付けリスト
     """
@@ -57,6 +59,7 @@ class IdDictionaryList:
         self.cl_rank = IdDicionary()
         self.cl_order = IdDicionary()
         self.case_id = IdDicionary()
+        self.semrole = IdDicionary()
         self.from_id_dic = {
             DicAttributeId.word : self.word,
             DicAttributeId.word_base : self.word_base,
@@ -68,6 +71,7 @@ class IdDictionaryList:
             DicAttributeId.cl_rank : self.cl_order,
             DicAttributeId.case_id : self.case_id,
             DicAttributeId.connparticle : self.connparticle,
+            DicAttributeId.semroles : self.semrole,
         }
     def load(self):
         """設定したディレクトリにある構築済み辞書からロード
@@ -80,7 +84,8 @@ class IdDictionaryList:
             ('dat/dic/defs/case.def', self.case),
             ('dat/dic/defs/connparticle.def', self.connparticle),
             ('dat/dic/defs/conj.def', self.conj),
-            ('dat/dic/defs/case_id.def', self.case_id)
+            ('dat/dic/defs/case_id.def', self.case_id),
+            ('dat/dic/defs/semroles.def', self.semrole),
         ]
         for target in targets:
             with open(target[0], 'r', encoding='utf-8') as file:
@@ -99,6 +104,7 @@ class IdDictionaryList:
             ('dat/dic/defs/case.def', self.case),
             ('dat/dic/defs/connparticle.def', self.connparticle),
             ('dat/dic/defs/conj.def', self.conj),
+            ('dat/dic/defs/semroles.def', self.semrole),
         ]
         print('saving files')
         for target in targets:
@@ -127,6 +133,15 @@ class IdDictionaryList:
                         self.case.add_value(chunk.case)
                     if chunk.particle is not None and chunk.particle.attr1 in {'係助詞', '副助詞'}:
                         self.connparticle.add_value(chunk.particle.surface)
+    def load_from_yaml(self, yamlfile):
+        with open(yamlfile) as file:
+            result = yaml.load(file)
+        for verbs in result['dict']:
+            for frame in verbs['frame']:
+                for inst in frame['instance']:
+                    for case in inst['cases']:
+                        self.semrole.add_value(case['semrole'])
+
 def main():
     pass
 if __name__ == "__main__":
