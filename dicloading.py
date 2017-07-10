@@ -1,8 +1,10 @@
 import sys
-import yaml
+import pickle
+from enum import Enum
 from . import KNBCInput
 from . import bccwj, database
-from enum import Enum
+from asa_python import AsaDictionary
+
 """辞書データを基にしたidの付与と辞書の構築を行う
 """
 class IdDicionary:
@@ -133,14 +135,15 @@ class IdDictionaryList:
                         self.case.add_value(chunk.case)
                     if chunk.particle is not None and chunk.particle.attr1 in {'係助詞', '副助詞'}:
                         self.connparticle.add_value(chunk.particle.surface)
-    def load_from_yaml(self, yamlfile):
-        with open(yamlfile) as file:
-            result = yaml.load(file)
-        for verbs in result['dict']:
-            for frame in verbs['frame']:
-                for inst in frame['instance']:
-                    for case in inst['cases']:
-                        self.semrole.add_value(case['semrole'])
+    def load_from_pth(self):
+        asa_dic = AsaDictionary()
+        asa_dic.load()
+        result = asa_dic.data
+        for verbs in result.frames.dict:
+            for frame in verbs.frame:
+                for inst in frame.instance:
+                    for case in inst.cases:
+                        self.semrole.add_value(case.semrole)
 
 def main():
     pass
