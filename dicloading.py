@@ -137,7 +137,10 @@ class IdDictionaryList:
                         self.connparticle.add_value(chunk.particle.surface)
     def load_from_pth(self):
         asa_dic = pth_dic.AsaDictionary()
-        asa_dic.load()
+        if asa_dic.is_loadable():
+            asa_dic.load()
+        else:
+            asa_dic.load_from_yaml()
         result = asa_dic.data
         for verbs in result.frames.dict:
             for frame in verbs.frame:
