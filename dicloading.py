@@ -141,6 +141,7 @@ class IdDictionaryList:
             asa_dic.load()
         else:
             asa_dic.load_from_yaml()
+            asa_dic.save()
         result = asa_dic.data
         for verbs in result.frames.dict:
             for frame in verbs.frame:
