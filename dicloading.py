@@ -146,7 +146,8 @@ class IdDictionaryList:
             for frame in verbs.frame:
                 for inst in frame.instance:
                     for case in inst.cases:
-                        self.semrole.add_value(case.semrole)
+                        if case.semrole is not None:
+                            self.semrole.add_value(case.semrole)
 
 def main():
     pass
