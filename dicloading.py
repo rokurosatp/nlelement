@@ -3,7 +3,7 @@ import pickle
 from enum import Enum
 from . import KNBCInput
 from . import bccwj, database
-from asa_python import asa_python
+from asa_python import pth_dic
 
 """辞書データを基にしたidの付与と辞書の構築を行う
 """
@@ -136,7 +136,7 @@ class IdDictionaryList:
                     if chunk.particle is not None and chunk.particle.attr1 in {'係助詞', '副助詞'}:
                         self.connparticle.add_value(chunk.particle.surface)
     def load_from_pth(self):
-        asa_dic = asa_python.AsaDictionary()
+        asa_dic = pth_dic.AsaDictionary()
         asa_dic.load()
         result = asa_dic.data
         for verbs in result.frames.dict:
