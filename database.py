@@ -53,6 +53,7 @@ class DatabaseLoader:
             );
             CREATE TABLE Pas_Annotated(ID INTEGER PRIMARY_KEY, NAME TEXT UNIQUE);
             CREATE TABLE Pth_Annotated(ID INTEGER PRIMARY_KEY, NAME TEXT UNIQUE);
+            CREATE TABLE Pth_Annotated_Sent(ID INTEGER PRIMARY_KEY);
 
             CREATE TABLE Token_Tags(Token INTEGER, NAME TEXT, VALUE TEXT);
             CREATE TABLE Coreference(ANAPHORA INTEGER UNIQUE, ANTECEDENT INTEGER);
@@ -107,6 +108,17 @@ class DatabaseLoader:
                 "INSERT INTO Pth_Annotated VALUES (?, ?)",
                 (did, doc.name)
             )
+            for sentence in doc.sentence:
+                if hasattr(sentence, 'pt_annotated') and getattr(sentence, 'pt_annotated'):
+                    cursor.execute(
+                        "SELECT id FROM Sentences WHERE sid = ? and doc_id = ?",
+                        (sentence.sid, did)
+                    )
+                    sentence_id = cursor.fetchone[0]
+                    cursor.execute(
+                        "INSERT INTO Pth_Annotated_Sent VALUES (?)",
+                        (sentence_id,)
+                    )
     def add_documents(self, cursor: sqlite3.Cursor, documents):
         did_globaldid_map = dict()
         subcursor = self.connector.cursor()
@@ -327,6 +339,11 @@ class DatabaseLoader:
         cursor.execute("SELECT COUNT(*) FROM Pth_Annotated WHERE ID = ?", (doc_id,))
         if cursor.fetchone()[0] != 0:
             setattr(document, 'pt_annotated', True)
+            cursor.execute(
+                "SELECT sid from sentences where id in (SELECT id FROM Pth_Annotated) and document_id = ?",
+                (doc_id,))
+            for sid in cursor.fetchall():
+                setattr(document.refer_sentence(sid), "pt_annotated", True)
         cursor.close()
     def load_as_iter(self):
         cursor = self.connector.cursor()
