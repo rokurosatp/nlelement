@@ -108,17 +108,18 @@ class DatabaseLoader:
                 "INSERT INTO Pth_Annotated VALUES (?, ?)",
                 (did, doc.name)
             )
-            for sentence in doc.sentence:
+            for sentence in doc.sentences:
                 if hasattr(sentence, 'pt_annotated') and getattr(sentence, 'pt_annotated'):
                     cursor.execute(
-                        "SELECT id FROM Sentences WHERE sid = ? and doc_id = ?",
+                        "SELECT id FROM Sentences WHERE sid = ? and document_id = ?",
                         (sentence.sid, did)
                     )
-                    sentence_id = cursor.fetchone[0]
+                    sentence_id = cursor.fetchone()[0]
                     cursor.execute(
                         "INSERT INTO Pth_Annotated_Sent VALUES (?)",
                         (sentence_id,)
                     )
+
     def add_documents(self, cursor: sqlite3.Cursor, documents):
         did_globaldid_map = dict()
         subcursor = self.connector.cursor()
@@ -130,7 +131,7 @@ class DatabaseLoader:
             )
             cursor.execute("SELECT ID FROM DOCUMENTS WHERE ROWID IN (SELECT last_insert_rowid())")
             did_globaldid_map[i] = cursor.fetchone()[0]
-            self.add_annotation(subcursor, doc, did_globaldid_map[i])
+            #self.add_annotation(subcursor, doc, did_globaldid_map[i])
             progress.update(i+1)
         progress.finish()
         subcursor.close()
@@ -139,6 +140,11 @@ class DatabaseLoader:
             self.add_sentences(cursor, doc, did_globaldid_map[i])
             self.add_coreference_links(cursor, doc, document_id=did_globaldid_map[i])
             self.add_semroles(cursor, doc, document_id=did_globaldid_map[i])
+            progress.update(i+1)
+        progress.finish()
+        progress = myprogress.make_progress(max_value=length)
+        for i, doc in enumerate(documents):
+            self.add_annotation(cursor, doc, did_globaldid_map[i])
             progress.update(i+1)
         progress.finish()
         did_globaldid_map = None
@@ -340,10 +346,12 @@ class DatabaseLoader:
         if cursor.fetchone()[0] != 0:
             setattr(document, 'pt_annotated', True)
             cursor.execute(
-                "SELECT sid from sentences where id in (SELECT id FROM Pth_Annotated) and document_id = ?",
+                "SELECT sid from sentences where id in (SELECT id FROM Pth_Annotated_Sent) and document_id = ?",
                 (doc_id,))
-            for sid in cursor.fetchall():
-                setattr(document.refer_sentence(sid), "pt_annotated", True)
+            # , はタイポではない。タプルをアンパックするために必要
+            for sid, in cursor.fetchall():
+                sent = document.refer_sentence(sid)
+                setattr(sent, "pt_annotated", True)
         cursor.close()
     def load_as_iter(self):
         cursor = self.connector.cursor()
@@ -391,7 +399,6 @@ class DatabaseLoader:
     def load_document(self, doc_id, name):
         doc = nlelement.Document()
         doc.name = name
-        self.load_annotated(doc_id, doc)
         try:
             doc.sentences = self.load_sencences(doc_id)
         except IndexError:
@@ -399,6 +406,7 @@ class DatabaseLoader:
             raise
         self.load_coreference_links(doc, doc_id)
         self.load_semroles(doc, doc_id)
+        self.load_annotated(doc_id, doc)
         return doc
     def load_sencences(self, doc_id):
         cursor = self.connector.cursor()
