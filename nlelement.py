@@ -9,6 +9,8 @@ class ChunkReference:
         return self.sid >= 0 or self.cid >= 0
     def __eq__(self, value):
         return self.sid == value.sid and self.cid == value.cid
+    def __lt__(self, value):
+        return self.sid < value.sid or (self.sid == value.sid and self.cid < value.cid)
     def __repr__(self):
         return '<Ch:{0},{1}>'.format(self.sid, self.cid)
 class TokenReference:
@@ -19,10 +21,46 @@ class TokenReference:
         return (self.sid, self.tid)
     def __bool__(self):
         return self.sid >= 0 or self.tid >= 0
+    def __lt__(self, value):
+        return self.sid < value.sid or (self.sid == value.sid and self.sid < value.sid)
     def __eq__(self, value):
         return self.sid == value.sid and self.tid == value.tid
     def __repr__(self):
         return '<Tk:{0},{1}>'.format(self.sid, self.tid)
+
+class PredicateArgument:
+    def __init__(self, *args):
+        self.ana_sid = args[0]
+        self.ana_tid = args[1]
+        self.ant_sid = args[2]
+        self.ant_tid = args[3]
+        self.case = args[4]
+        self.label = args[5]
+        self.probable =  args[6]
+    def get_repr(self, doc):
+        return '{0} -{1:4}-> {2}: '.format(
+            doc.refer(self.ana_ref()).get_surface(), self.case, doc.refer(self.ant_ref()).get_surface()
+        ) + '{0}|{1}'.format(self.label, self.probable)
+    def ana_ref(self):
+        return nlelement.TokenReference(self.ana_sid, self.ana_tid)
+    def ant_ref(self):
+        return nlelement.TokenReference(self.ant_sid, self.ant_tid)
+class CoreferenceArgument:
+    def __init__(self, *args):
+        self.ana_sid = args[0]
+        self.ana_tid = args[1]
+        self.ant_sid = args[2]
+        self.ant_tid = args[3]
+        self.label = args[4]
+        self.probable =  args[5]
+    def get_repr(self, doc):
+        return '{0} ------> {1}: '.format(
+            doc.refer(self.ana_ref()).get_surface(), doc.refer(self.ant_ref()).get_surface()
+        ) + '{0}|{1}'.format(self.label, self.probable)
+    def ana_ref(self):
+        return nlelement.TokenReference(self.ana_sid, self.ana_tid)
+    def ant_ref(self):
+        return nlelement.TokenReference(self.ant_sid, self.ant_tid)
 
 def make_reference(element):
     if isinstance(element, Chunk):
