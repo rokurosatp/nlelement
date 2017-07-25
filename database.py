@@ -1,9 +1,9 @@
 import sqlite3
 from application import myprogress
 from . import nlelement
+from . import loadercommon
 
 class DatabaseLoader:
-    from .cabocha import part_id 
     def __init__(self, filename):
         self.connector = sqlite3.connect(filename)
         self.chunkid_contains_list = dict()
@@ -559,7 +559,7 @@ class DatabaseLoader:
             token.surface, token.basic_surface = surface, base
             token.read = read
             token.part = part
-            token.part_id = DatabaseLoader.part_id[part] if part in DatabaseLoader.part_id else 10
+            token.part_id = loadercommon.part_id[part] if part in loadercommon.part_id else 10
             token.attr1 = attr1
             token.attr2 = attr2
             token.pos = '-'.join((part, attr1, attr2))

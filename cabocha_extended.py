@@ -262,18 +262,7 @@ def __is_case__(token):
 
 def __get_depend_number__(expr):
     return int(expr.replace('D', '').replace('P', '').replace('I', ''))
-part_id = {
-    '名詞':0,
-    '助詞':1,
-    '動詞':2,
-    '形容詞':3,
-    '形容動詞':4,
-    '副詞':5,
-    '助動詞':6,
-    '連体詞':7,
-    '記号':8,
-    'フィラー':9,
-}
+
 class CabochaLoader:
     def __init__(self, directory):
         self.directory = directory
@@ -412,7 +401,7 @@ class CabochaLoader:
             token.read = header[7]
             token.basic_surface = header[6]
             token.part = header[0]
-            token.part_id = part_id[header[0]] if header[0] in part_id else 10
+            token.part_id = loadercommon.part_id[header[0]] if header[0] in loadercommon.part_id else 10
             token.attr1 = header[1]
             token.attr2 = header[2]
             token.pos = token.part + '-' + token.attr1 + '-' + token.attr2
