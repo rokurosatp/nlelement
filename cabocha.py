@@ -149,7 +149,7 @@ class ChunkMarger:
         return result
 
 def test_merger():
-    import database
+    from . import database
     import sys
     doc_name = 'PM41_00304'
     if sys.argv[1:]:
