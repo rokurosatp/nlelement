@@ -1,5 +1,6 @@
 import os
 import re
+import io
 from application import myprogress
 from . import nlelement
 from . import argument
@@ -280,7 +281,7 @@ class CabochaLoader:
     def __get_docname__(self, filename):
         basename = self.filenamegetter.match(filename).group(1)
         docname = '_'.join(basename.split('_')[-2:])
-        return docname
+        return docname        
     def load(self):
         ids = loadercommon.IdGenerator()
         documents = []
@@ -335,10 +336,14 @@ class CabochaLoader:
         for self.line_num, self.line in enumerate(map(lambda x: x.rstrip('\r\n'), lines)):
             if self.line == 'EOT':
                 self.__resolve_entity_id__(doc)
+                
                 self.entity_ids = dict()
                 doc = nlelement.Document()
                 docs.append(doc)
             elif self.line == 'EOS':
+                # NOTE: もとになってるcabochaモジュールでsidが永遠に付与されないという深すぎる闇があった
+                for tok in sentence.tokens:
+                    tok.sid = sentence.sid
                 self.__validate_sentence__(sentence)
                 doc.sentences.append(sentence)
                 sentence = nlelement.Sentence()
@@ -370,6 +375,7 @@ class CabochaLoader:
     def __resolve_entity_id__(self, doc):
         """書かれていたidの一覧をすべて解決してtokenのメンバに代入
         """
+        print("\nresolve entity id")
         for tok in nlelement.tokens(doc):
             if hasattr(tok, "entity_links"):
                 for key, value in tok.entity_links.items():
@@ -378,11 +384,11 @@ class CabochaLoader:
                             if entity_tup[0] in self.entity_ids:
                                 if not hasattr(tok, "predicate_term"):
                                     tok.predicate_term = dict()
-                                if key in tok.predicate_term:
+                                if key not in tok.predicate_term:
                                     tok.predicate_term[key] = []
-                                ana_tok = self.entity_ids[entity_tup[0]]
-                                ana_ref = nlelement.make_reference(ana_tok)
-                                ant_ref = nlelement.make_reference(tok)
+                                ana_ref = nlelement.make_reference(tok)
+                                ant_tok = self.entity_ids[entity_tup[0]]
+                                ant_ref = nlelement.make_reference(ant_tok)
                                 tok.predicate_term[key].append(
                                     argument.PredicateArgument(
                                         *ana_ref.to_tuple(), *ant_ref.to_tuple(), key, *entity_tup[1:]
@@ -391,10 +397,10 @@ class CabochaLoader:
                     elif key == "eq":
                         # NOTE:複数候補未対応
                         if value[0] in self.entity_ids:
-                            ana_tok = self.entity_ids[value[0]]
-                            ana_ref = nlelement.make_reference(ana_tok)
-                            ant_ref = nlelement.make_reference(tok)
-                            tok.corefernence = argument.CoreferenceArgument(
+                            ant_tok = self.entity_ids[value[0]]
+                            ant_ref = nlelement.make_reference(ant_tok)
+                            ana_ref = nlelement.make_reference(tok)
+                            tok.coreference = argument.CoreferenceArgument(
                                 *ana_ref.to_tuple(), *ant_ref.to_tuple(), *entity_tup[1:]
                             )
                     else:
@@ -403,6 +409,7 @@ class CabochaLoader:
                             if hasattr(tok, "semrole"):
                                 tok.semrole = dict()
                             tok.semrole[key] = self.entity_ids[value]
+                delattr(tok, "entity_links")
 
     def __load_chunk__(self, line, sid):
         chunk = nlelement.Chunk()
@@ -453,7 +460,7 @@ class CabochaLoader:
             token.conj_form = header[5]
             # 固有表現の取得
             if len(surf_feat) > 2:
-                self.__handle_annotation__(self, surf_feat)
+                self.__handle_annotation__(token, surf_feat)
         except Exception as inst:
             newinst = LoadError(inst=inst)
             newinst.problemed = str(header)
@@ -484,20 +491,20 @@ class CabochaLoader:
                     else:
                         if not hasattr(tok, "entity_links"):
                             setattr(tok, "entity_links", dict())
-                            tup = tuple(match.group(2).split())
-                            key = match.group(1)
-                            if key in ['ga', 'o', 'ni']:
-                                if len(tup) == 3:
-                                    if key not in tok.entity_links:
-                                        tok.entity_links[key] = []
-                                    tok.entity_links[key].append((int(tup[0]), float(tup[1]), float(tup[2])))
-                            elif key == 'eq':
-                                # NOTE:複数候補未対応                                
-                                if len(tup) == 3:
-                                    tok.entity_links[key] = (int(tup[0]), float(tup[1]), float(tup[2]))                                    
-                            else:
-                                # NOTE:複数候補未対応
-                                tok.entity_links[key] = int(tup[0])
+                        tup = tuple(match.group(2).split(";"))
+                        key = match.group(1)
+                        if key in ['ga', 'o', 'ni']:
+                            if len(tup) == 3:
+                                if key not in tok.entity_links:
+                                    tok.entity_links[key] = []
+                                tok.entity_links[key].append((int(tup[0]), float(tup[1]), float(tup[2])))
+                        elif key == 'eq':
+                            # NOTE:複数候補未対応                                
+                            if len(tup) == 3:
+                                tok.entity_links[key] = (int(tup[0]), float(tup[1]), float(tup[2]))                                    
+                        else:
+                            # NOTE:複数候補未対応
+                            tok.entity_links[key] = int(tup[0])
     def __token_post_process__(self, chunk, token):
         """トークンをチャンクに追加した後に追加したトークンに応じて属性値を変更する
         内容語の場合は機能表現の位置を+1するとか
@@ -520,11 +527,12 @@ class CabochaDumper:
         refered_entities = []
         for tok in nlelement.tokens(document):
             if hasattr(tok, "predicate_term"):
-                for key, value in tok.predicate_term.items():
-                    refered_entities.append(nlelement.TokenReference(value.ana_sid, value.ana_tid))
+                for key, values in tok.predicate_term.items():
+                    for value in values:
+                        refered_entities.append(nlelement.TokenReference(value.ant_sid, value.ant_tid))
             elif hasattr(tok, "coreference"):
                 value = getattr(tok, "coreference")
-                refered_entities.append(nlelement.TokenReference(value.ana_sid, value.ana_tid))
+                refered_entities.append(nlelement.TokenReference(value.ant_sid, value.ant_tid))
             elif hasattr(tok, "semrole"):
                 for key, value in tok.semrole.items():
                     refered_entities.append(nlelement.make_reference(value))
@@ -546,18 +554,21 @@ class CabochaDumper:
             entity_id_table[ref.to_tuple()] = e_id
         for tok in nlelement.tokens(document):
             if hasattr(tok, "predicate_term"):
-                setattr(tok, "predicate_term", dict())
                 for key, values in tok.predicate_term.items():
                     # NOTE: 候補は複数出力される設定です。
-                    for value in value:
-                        ref = nlelement.TokenReference(value.ana_sid, value.ana_tid)
+                    for value in values:
+                        ref = nlelement.TokenReference(value.ant_sid, value.ant_tid)
                         if not hasattr(tok, "entity_links"):
                             tok.entity_links = dict()    
-                        tok.entity_links[key] = (entity_id_table[ref.to_tuple()], key, value.label, value.probable)
+                        if key not in tok.entity_links:
+                            tok.entity_links[key] = []   
+                        tok.entity_links[key].append(
+                            (entity_id_table[ref.to_tuple()], value.label, value.probable)
+                        )
             elif hasattr(tok, "coreference"):
                 # NOTE:複数候補未対応
                 value = tok.coreference
-                ref = nlelement.TokenReference(value.ana_sid, value.ana_tid)
+                ref = nlelement.TokenReference(value.ant_sid, value.ant_tid)
                 if not hasattr(tok, "entity_links"):
                     tok.entity_links = dict()
                 tok.entity_links['eq'] = (entity_id_table[ref.to_tuple()], value.label, value.probable)
@@ -569,11 +580,15 @@ class CabochaDumper:
                     if not hasattr(tok, "entity_links"):
                         tok.entity_links = dict()
                     tok.entity_links[key] = entity_id_table[ref.to_tuple()]
-
+    @staticmethod
+    def postproccess_doc(document: nlelement.Document):
+        for tok in nlelement.tokens(document):
+            delattr(tok, "entity_links")
     @staticmethod
     def doc_to_format(document: nlelement.Document):
         """DocumentオブジェクトからCaboChaフォーマットを生成する
         """
+        CabochaDumper.preprocess_doc(document)
         fmt_text = ''
         for sentence in document.sentences:
             fmt_text += CabochaDumper.sent_to_format(sentence)
@@ -645,11 +660,17 @@ class CabochaDumper:
                 else:
                     # NOTE:複数候補未対応
                     result_items.append('{}={}'.format(key, value))
-        return ';'.join(result_items)
+        return ','.join(result_items)
 
 def load(dirname):
     loader = CabochaLoader(dirname)
     return loader.load()
+def load_from_text(text):
+    loader = CabochaLoader('')
+    fp = io.StringIO(text)
+    result = loader.__load_document__(fp)
+    fp.close()
+    return result
 def dump(elem):
     if isinstance(elem, nlelement.Document):
         return CabochaDumper.doc_to_format(elem)
