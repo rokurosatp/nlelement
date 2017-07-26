@@ -2,6 +2,7 @@ import os
 import re
 from application import myprogress
 from . import nlelement
+from . import argument
 from . import loadercommon
 
     
@@ -376,9 +377,19 @@ class CabochaLoader:
                         if key in ['ga', 'o', 'ni']:
                             if hasattr(tok, "predicate_term"):
                                 tok.predicate_term = dict()
-                            tok.predicate_term[key] = self.entity_ids[value]
+                            entity_tup = self.entity_ids[value]
+                            ana_ref = nlelement.make_reference(entity_tup[0])
+                            ant_ref = nlelement.make_reference(tok)
+                            tok.predicate_term[key] = argument.PredicateArgument(
+                                *ana_ref.to_tuple(), *ant_ref.to_tuple(), key, *entity_tup[1:]
+                            )
                         elif key == "eq":
-                            tok.corefernence = self.entity_ids[value]
+                            entity_tup = self.entity_ids[value]
+                            ana_ref = nlelement.make_reference(entity_tup[0])
+                            ant_ref = nlelement.make_reference(tok)
+                            tok.corefernence = argument.CoreferenceArgument(
+                                *ana_ref.to_tuple(), *ant_ref.to_tuple(), *entity_tup[1:]
+                            )
                         else:
                             if hasattr(tok, "semrole"):
                                 tok.semrole = dict()
@@ -455,16 +466,22 @@ class CabochaLoader:
                 ne_features = anno.split(':')
                 tok.named_entity = ne_features[1]
                 tok.named_entity_part = ne_features[2] if len(ne_features) > 2 else ''
-            elif re.match(r'([^=]+=[\d]+,?)+', anno):
+            elif re.match(r'([^=]+=[\d\.;]+,?)+', anno):
                 for id_resolver in anno.split(','):
-                    match = re.match(r'([^=]+)=([\d]+)', id_resolver)
+                    match = re.match(r'([^=]+)=([\d\.;]+)', id_resolver)
                     if match.group(1) == 'id':
-                        self.entity_ids[int(match.group(2))] = tok
+                        tup = tuple(match.group(2).split())
+                        self.entity_ids[int(tup[0])] = tok
                     else:
                         if not hasattr(tok, "entity_links"):
                             setattr(tok, "entity_links", dict())
-                            tok.entity_links[match.group(1)] = int(match.group(2))
-    
+                            tup = tuple(match.group(2).split())
+                            key = match.group(1)
+                            if key in ['eq', 'ga', 'o', 'ni']:
+                                if len(tup) == 3:
+                                    tok.entity_links[key] = (int(tup[0]), float(tup[1]), float(tup[2]))
+                            else:
+                                tok.entity_links[key] = int(tup[0])
     def __token_post_process__(self, chunk, token):
         """トークンをチャンクに追加した後に追加したトークンに応じて属性値を変更する
         内容語の場合は機能表現の位置を+1するとか
@@ -518,13 +535,13 @@ class CabochaDumper:
                     ref = nlelement.TokenReference(value.ana_sid, value.ana_tid)
                     if not hasattr(tok, "entity_links"):
                         tok.entity_links = dict()    
-                    tok.entity_links[key] = entity_id_table[ref.to_tuple()]
+                    tok.entity_links[key] = (entity_id_table[ref.to_tuple()], key, value.label, value.probable)
             elif hasattr(tok, "coreference"):
                 value = tok.coreference
                 ref = nlelement.TokenReference(value.ana_sid, value.ana_tid)
                 if not hasattr(tok, "entity_links"):
                     tok.entity_links = dict()
-                tok.entity_links['eq'] = entity_id_table[ref.to_tuple()]
+                tok.entity_links['eq'] = (entity_id_table[ref.to_tuple()], value.label, value.probable)
             elif hasattr(tok, "semrole"):
                 setattr(tok, "semrole", dict())
                 for key, value in tok.semrole.items():
@@ -599,7 +616,10 @@ class CabochaDumper:
             result_items.append('id={}'.format(getattr(token, "entity_id")))
         if hasattr(token, 'entity_links'):
             for key, value in getattr(token, "entity_links").items():
-                result_items.append('{}={}'.format(key, value))
+                if key in ['ga', 'o', 'ni']:
+                    result_items.append('{}={};{};{}'.format(key, *value))
+                else:
+                    result_items.append('{}={}'.format(key, value))
         return ';'.join(result_items)
 
 def load(dirname):
