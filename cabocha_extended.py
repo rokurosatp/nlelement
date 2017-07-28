@@ -665,11 +665,41 @@ class CabochaDumper:
 def load(dirname):
     loader = CabochaLoader(dirname)
     return loader.load()
+
 def load_from_text(text):
     loader = CabochaLoader('')
-    fp = io.StringIO(text)
-    result = loader.__load_document__(fp)
-    fp.close()
+    file = io.StringIO(text)
+    result = loader.__load_document__(file)
+    file.close()
+    return result
+def load_to_tuple(text, single_doc=False):
+    """synchacallモジュールの結果形式に適合した形式でロード
+    (形態素、構文情報は戻り値に含まれない)
+    """
+    loader = CabochaLoader('')
+    file = io.StringIO(text)
+    if single_doc:
+        doc = loader.__load_document__(file)[0]
+        docs = [doc]
+    else:
+        docs = loader.__load_document__(file)[0]
+    file.close()
+    result = []
+    for doc in docs:
+        pred_tups = []
+        coref_tups = []
+        for tok in nlelement.tokens(doc):
+            if hasattr(tok, "predicate_term"):
+                for case, args in tok.predicate_term.items():
+                    for arg in args:
+                       pred_tups.append((*arg.ant_ref.to_tuple(), *arg.ana_ref.to_tuple(), case, arg.label, arg.probable))
+            if hasattr(tok, "coreference"):
+                #for arg in tok.coreference:
+                arg = tok.coreference
+                coref_tups.append(*arg.ant_ref.to_tuple(), *arg.ana_ref.to_tuple(), arg.label, arg.probable)
+        result.append((pred_tups, coref_tups, []))
+    if single_doc:
+        return result[0]
     return result
 def dump(elem):
     if isinstance(elem, nlelement.Document):
