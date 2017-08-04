@@ -483,16 +483,17 @@ class CabochaLoader:
             raise newinst from inst
         return token
 
-
     def __handle_annotation__(self, tok, annotations):
         """固有表現, 述語項, 意味役割の各アノテーションがトークンについている場合に解析する
         """
         for anno in annotations[2:]:
             anno = anno.rstrip('\n')
-            if re.match(r'(B|I|O)-?.*', anno):
+            if re.match(r'(B|I)-.+', anno):
                 ne_features = anno.split(':')
                 tok.named_entity = ne_features[1]
                 tok.named_entity_part = ne_features[2] if len(ne_features) > 2 else ''
+            elif re.match(r'(I|O)', anno):
+                pass
             elif re.match(r'([^=]+=[\d\.;]+,?)+', anno):
                 for id_resolver in anno.split(','):
                     match = re.match(r'([^=]+)=([\d\.;]+)', id_resolver)
