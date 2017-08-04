@@ -498,7 +498,9 @@ class CabochaLoader:
             elif re.match(r'([^=]+=[\d\.;]+,?)+', anno):
                 for id_resolver in anno.split(','):
                     match = re.match(r'([^=]+)=([\d\.;]+)', id_resolver)
-                    if match.group(1) == 'id':
+                    if not match:
+                        pass
+                    elif match.group(1) == 'id':
                         tup = tuple(match.group(2).split())
                         self.entity_ids[int(tup[0])] = tok
                     else:
