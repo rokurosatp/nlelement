@@ -485,7 +485,7 @@ class CabochaLoader:
         """
         for anno in annotations[2:]:
             anno = anno.rstrip('\n')
-            if re.match(r'NE:', anno):
+            if re.match(r'(B|I|O)-?.*', anno):
                 ne_features = anno.split(':')
                 tok.named_entity = ne_features[1]
                 tok.named_entity_part = ne_features[2] if len(ne_features) > 2 else ''
