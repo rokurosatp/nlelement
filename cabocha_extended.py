@@ -448,6 +448,8 @@ class CabochaLoader:
     def __load_token__(self, line):
         token = nlelement.Token()
         surf_feat = line.split('\t')
+        if len(surf_feat) == 1:
+            surf_feat = list(filter(None, line.split()))
         header = surf_feat[1].split(',')
         try:
             # 出力は固定長なので必ず13分割
