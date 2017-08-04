@@ -6,7 +6,7 @@ from . import nlelement
 from . import argument
 from . import loadercommon
 
-    
+
 class ChunkMarger:
     def __init__(self):
         self.doc_table = {}
@@ -76,7 +76,7 @@ class ChunkMarger:
         for orig_chunk in nlelement.chunks(orig):
             if orig_chunk.link and orig_chunk.sid == orig_chunk.link.sid:
                 orig_chunk.link_id = orig_chunk.link.cid
-            
+
     def __merge_chunkofdoc__(self, orig, annotation):
         """annotationにある文節の区切り情報を基にorigにChunkオブジェクトを追加する
         """
@@ -281,7 +281,7 @@ class CabochaLoader:
     def __get_docname__(self, filename):
         basename = self.filenamegetter.match(filename).group(1)
         docname = '_'.join(basename.split('_')[-2:])
-        return docname        
+        return docname
     def load(self):
         ids = loadercommon.IdGenerator()
         documents = []
@@ -331,12 +331,12 @@ class CabochaLoader:
         self.ids.chunk.reset()
         self.ids.tok.reset()
         self.entity_ids = dict()
-        
+
         chunk = None
         for self.line_num, self.line in enumerate(map(lambda x: x.rstrip('\r\n'), lines)):
             if self.line == 'EOT':
                 self.__resolve_entity_id__(doc)
-                
+
                 self.entity_ids = dict()
                 doc = nlelement.Document()
                 docs.append(doc)
@@ -371,11 +371,11 @@ class CabochaLoader:
                 self.__token_post_process__(chunk, token)
                 sentence.tokens.append(token)
         return docs
-    
+
     def __resolve_entity_id__(self, doc):
         """書かれていたidの一覧をすべて解決してtokenのメンバに代入
         """
-        print("\nresolve entity id")
+        #print("\nresolve entity id")
         for tok in nlelement.tokens(doc):
             if hasattr(tok, "entity_links"):
                 for key, value in tok.entity_links.items():
@@ -395,20 +395,27 @@ class CabochaLoader:
                                     )
                                 )
                     elif key == "eq":
-                        # NOTE:複数候補未対応
-                        if value[0] in self.entity_ids:
-                            ant_tok = self.entity_ids[value[0]]
-                            ant_ref = nlelement.make_reference(ant_tok)
-                            ana_ref = nlelement.make_reference(tok)
-                            tok.coreference = argument.CoreferenceArgument(
-                                *ana_ref.to_tuple(), *ant_ref.to_tuple(), *entity_tup[1:]
-                            )
+                        for entity_tup in value:
+                            if entity_tup[0] in self.entity_ids:
+                                print('eq_resolve')
+                                if not hasattr(tok, 'coreference'):
+                                    setattr(tok, 'coreference', [])
+                                ant_tok = self.entity_ids[entity_tup[0]]
+                                ant_ref = nlelement.make_reference(ant_tok)
+                                ana_ref = nlelement.make_reference(tok)
+                                tok.coreference.append(
+                                    argument.CoreferenceArgument(
+                                        *ana_ref.to_tuple(), *ant_ref.to_tuple(), *entity_tup[1:]
+                                    )
+                                )
                     else:
-                        # NOTE:複数候補未対応
-                        if value in self.entity_ids:
-                            if hasattr(tok, "semrole"):
-                                tok.semrole = dict()
-                            tok.semrole[key] = self.entity_ids[value]
+                        for entity_tup in value:
+                            if entity_tup in self.entity_ids:
+                                if hasattr(tok, "semrole"):
+                                    tok.semrole = dict()
+                                if key not in tok.semrole:
+                                    tok.semrole[key] = []
+                                tok.semrole[key].append(self.entity_ids[entity_tup])
                 delattr(tok, "entity_links")
 
     def __load_chunk__(self, line, sid):
@@ -435,7 +442,7 @@ class CabochaLoader:
             newinst.line_num = self.line_num
             newinst.file_name = self.doc_file
             newinst.set_args()
-            raise newinst from inst     
+            raise newinst from inst
         return chunk
 
     def __load_token__(self, line):
@@ -472,7 +479,7 @@ class CabochaLoader:
             raise newinst from inst
         return token
 
-    
+
     def __handle_annotation__(self, tok, annotations):
         """固有表現, 述語項, 意味役割の各アノテーションがトークンについている場合に解析する
         """
@@ -499,12 +506,15 @@ class CabochaLoader:
                                     tok.entity_links[key] = []
                                 tok.entity_links[key].append((int(tup[0]), float(tup[1]), float(tup[2])))
                         elif key == 'eq':
-                            # NOTE:複数候補未対応                                
+                            print('eq_load {}')                            
                             if len(tup) == 3:
-                                tok.entity_links[key] = (int(tup[0]), float(tup[1]), float(tup[2]))                                    
+                                if key not in tok.entity_links:
+                                    tok.entity_links[key] = []
+                                tok.entity_links[key].append((int(tup[0]), float(tup[1]), float(tup[2]))                                    )
                         else:
-                            # NOTE:複数候補未対応
-                            tok.entity_links[key] = int(tup[0])
+                            if key not in tok.entity_links:
+                                tok.entity_links[key] = []
+                            tok.entity_links[key].append(int(tup[0]))
     def __token_post_process__(self, chunk, token):
         """トークンをチャンクに追加した後に追加したトークンに応じて属性値を変更する
         内容語の場合は機能表現の位置を+1するとか
@@ -531,12 +541,14 @@ class CabochaDumper:
                     for value in values:
                         refered_entities.append(nlelement.TokenReference(value.ant_sid, value.ant_tid))
             elif hasattr(tok, "coreference"):
-                value = getattr(tok, "coreference")
-                refered_entities.append(nlelement.TokenReference(value.ant_sid, value.ant_tid))
+                values = getattr(tok, "coreference")
+                for value in values:
+                    refered_entities.append(nlelement.TokenReference(value.ant_sid, value.ant_tid))
             elif hasattr(tok, "semrole"):
-                for key, value in tok.semrole.items():
-                    refered_entities.append(nlelement.make_reference(value))
-        
+                for key, values in tok.semrole.items():
+                    for value in values:
+                        refered_entities.append(nlelement.make_reference(value))
+
         refered_entities.sort()
         del_list = []
         last_ent = None
@@ -555,31 +567,32 @@ class CabochaDumper:
         for tok in nlelement.tokens(document):
             if hasattr(tok, "predicate_term"):
                 for key, values in tok.predicate_term.items():
-                    # NOTE: 候補は複数出力される設定です。
                     for value in values:
                         ref = nlelement.TokenReference(value.ant_sid, value.ant_tid)
                         if not hasattr(tok, "entity_links"):
-                            tok.entity_links = dict()    
+                            tok.entity_links = dict()
                         if key not in tok.entity_links:
-                            tok.entity_links[key] = []   
+                            tok.entity_links[key] = []
                         tok.entity_links[key].append(
                             (entity_id_table[ref.to_tuple()], value.label, value.probable)
                         )
             elif hasattr(tok, "coreference"):
-                # NOTE:複数候補未対応
-                value = tok.coreference
-                ref = nlelement.TokenReference(value.ant_sid, value.ant_tid)
-                if not hasattr(tok, "entity_links"):
-                    tok.entity_links = dict()
-                tok.entity_links['eq'] = (entity_id_table[ref.to_tuple()], value.label, value.probable)
-            elif hasattr(tok, "semrole"):
-                # NOTE:複数候補未対応
-                setattr(tok, "semrole", dict())
-                for key, value in tok.semrole.items():
-                    ref = nlelement.make_reference(value)
+                values = tok.coreference
+                for value in values:
+                    ref = nlelement.TokenReference(value.ant_sid, value.ant_tid)
                     if not hasattr(tok, "entity_links"):
                         tok.entity_links = dict()
-                    tok.entity_links[key] = entity_id_table[ref.to_tuple()]
+                    if 'eq' not in tok.entity_links:
+                        tok.entity_links['eq'] = []
+                    tok.entity_links['eq'].append((entity_id_table[ref.to_tuple()], value.label, value.probable))
+            elif hasattr(tok, "semrole"):
+                for key, values in tok.semrole.items():
+                    for value in values:
+                        ref = nlelement.make_reference(value)
+                        if not hasattr(tok, "entity_links"):
+                            tok.entity_links = dict()
+                        if key in tok.entity_links:
+                            tok.entity_links[key].append(entity_id_table[ref.to_tuple()])
     @staticmethod
     def postproccess_doc(document: nlelement.Document):
         for tok in nlelement.tokens(document):
@@ -632,7 +645,7 @@ class CabochaDumper:
         result += token.conj_form + ','
         result += token.basic_surface + ','
         result += token.read + ','
-        
+
         result += token.read + '\t'
         result += 'B-'+token.named_entity if token.named_entity != '' else 'O'
 
@@ -655,11 +668,11 @@ class CabochaDumper:
                     for val in value:
                         result_items.append('{}={};{};{}'.format(key, *val))
                 elif key == 'eq':
-                    # NOTE:複数候補未対応
-                    result_items.append('{}={};{};{}'.format(key, *value))
+                    for val in value:
+                        result_items.append('{}={};{};{}'.format(key, *val))
                 else:
-                    # NOTE:複数候補未対応
-                    result_items.append('{}={}'.format(key, value))
+                    for val in value:
+                        result_items.append('{}={};{};{}'.format(key, *val))
         return ','.join(result_items)
 
 def load(dirname):
@@ -695,8 +708,9 @@ def load_to_tuple(text, single_doc=False):
                        pred_tups.append((*arg.ant_ref.to_tuple(), *arg.ana_ref.to_tuple(), case, arg.label, arg.probable))
             if hasattr(tok, "coreference"):
                 #for arg in tok.coreference:
-                arg = tok.coreference
-                coref_tups.append(*arg.ant_ref.to_tuple(), *arg.ana_ref.to_tuple(), arg.label, arg.probable)
+                args = tok.coreference
+                for arg in args:
+                    coref_tups.append(*arg.ant_ref.to_tuple(), *arg.ana_ref.to_tuple(), arg.label, arg.probable)
         result.append((pred_tups, coref_tups, []))
     if single_doc:
         return result[0]
