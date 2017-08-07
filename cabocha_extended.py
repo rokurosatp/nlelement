@@ -411,11 +411,18 @@ class CabochaLoader:
                     else:
                         for entity_tup in value:
                             if entity_tup in self.entity_ids:
-                                if hasattr(tok, "semrole"):
+                                if not hasattr(tok, "semrole"):
                                     tok.semrole = dict()
                                 if key not in tok.semrole:
                                     tok.semrole[key] = []
-                                tok.semrole[key].append(self.entity_ids[entity_tup])
+                                ant_tok = self.entity_ids[entity_tup]
+                                ant_ref = nlelement.make_reference(ant_tok)
+                                ana_ref = nlelement.make_reference(tok)
+                                tok.semrole[key].append(
+                                    argument.PredicateArgument(
+                                        *ana_ref.to_tuple(), *ant_ref.to_tuple(), key, *entity_tup[1:]
+                                    )
+                                )
                 delattr(tok, "entity_links")
 
     def __load_chunk__(self, line, sid):
@@ -518,11 +525,11 @@ class CabochaLoader:
                             if len(tup) == 3:
                                 if key not in tok.entity_links:
                                     tok.entity_links[key] = []
-                                tok.entity_links[key].append((int(tup[0]), float(tup[1]), float(tup[2]))                                    )
+                                tok.entity_links[key].append((int(tup[0]), float(tup[1]), float(tup[2])))
                         else:
                             if key not in tok.entity_links:
                                 tok.entity_links[key] = []
-                            tok.entity_links[key].append(int(tup[0]))
+                            tok.entity_links[key].append((int(tup[0]), float(tup[1]), float(tup[2])))
     def __token_post_process__(self, chunk, token):
         """トークンをチャンクに追加した後に追加したトークンに応じて属性値を変更する
         内容語の場合は機能表現の位置を+1するとか
@@ -555,7 +562,7 @@ class CabochaDumper:
             elif hasattr(tok, "semrole"):
                 for key, values in tok.semrole.items():
                     for value in values:
-                        refered_entities.append(nlelement.make_reference(value))
+                        refered_entities.append(value.ant_ref())
 
         refered_entities.sort()
         del_list = []
