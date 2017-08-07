@@ -397,7 +397,7 @@ class CabochaLoader:
                     elif key == "eq":
                         for entity_tup in value:
                             if entity_tup[0] in self.entity_ids:
-                                print('eq_resolve')
+                                #print('eq_resolve')
                                 if not hasattr(tok, 'coreference'):
                                     setattr(tok, 'coreference', [])
                                 ant_tok = self.entity_ids[entity_tup[0]]
@@ -448,10 +448,10 @@ class CabochaLoader:
     def __load_token__(self, line):
         token = nlelement.Token()
         surf_feat = line.split('\t')
-        print(surf_feat, len(surf_feat))
+        #print(surf_feat, len(surf_feat))
         if len(surf_feat) == 1:
             surf_feat = list(filter(None, line.split()))
-            print(surf_feat, len(surf_feat))
+            #print(surf_feat, len(surf_feat))
         header = surf_feat[1].split(',')
         try:
             # 出力は固定長なので必ず13分割
@@ -489,7 +489,7 @@ class CabochaLoader:
         for anno in annotations[2:]:
             anno = anno.rstrip('\n')
             if re.match(r'(B|I)-.+', anno):
-                print(anno)
+                #print(anno)
                 ne_features = anno
                 tok.named_entity = ne_features[0]
                 tok.named_entity_part = ne_features[1] if len(ne_features) > 2 else ''
@@ -514,7 +514,7 @@ class CabochaLoader:
                                     tok.entity_links[key] = []
                                 tok.entity_links[key].append((int(tup[0]), float(tup[1]), float(tup[2])))
                         elif key == 'eq':
-                            print('eq_load {}')                            
+                            #print('eq_load {}')                            
                             if len(tup) == 3:
                                 if key not in tok.entity_links:
                                     tok.entity_links[key] = []
