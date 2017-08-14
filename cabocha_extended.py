@@ -546,24 +546,96 @@ class CabochaLoader:
         return token
 class CabochaDumper:
     @staticmethod
-    def preprocess_doc(document: nlelement.Document):
-        """entityの参照生成のためにid=?,eq=?形式のメンバをあらかじめtokenに張り付ける
+    def __get_refered_entities__(document: nlelement.Document, from_label):
+        """synchaに入力するためcoreference_link, semrolesメンバに設定されているラベル値を
+        推定値を設定するpredicate_term, coreference, semroleメンバにコピーする
         """
+        
         refered_entities = []
-        for tok in nlelement.tokens(document):
-            if hasattr(tok, "predicate_term"):
-                for key, values in tok.predicate_term.items():
+        if from_label:
+            for tok in nlelement.tokens(document):
+                if hasattr(tok, "coreference_link"):
+                    for key, value in tok.coreference_link.items():
+                        refered_entities.append(value.antecedent_ref)                            
+                elif hasattr(tok, "semroles"):
+                    for key, value in tok.semroles.items():
+                        # 確か
+                        refered_entities.append(value)                            
+                    refered_entities.sort()
+        else:
+            for tok in nlelement.tokens(document):
+                if hasattr(tok, "predicate_term"):
+                    for key, values in tok.predicate_term.items():
+                        for value in values:
+                            refered_entities.append(nlelement.TokenReference(value.ant_sid, value.ant_tid))
+                elif hasattr(tok, "coreference"):
+                    values = getattr(tok, "coreference")
                     for value in values:
                         refered_entities.append(nlelement.TokenReference(value.ant_sid, value.ant_tid))
-            elif hasattr(tok, "coreference"):
-                values = getattr(tok, "coreference")
-                for value in values:
-                    refered_entities.append(nlelement.TokenReference(value.ant_sid, value.ant_tid))
-            elif hasattr(tok, "semrole"):
-                for key, values in tok.semrole.items():
+                elif hasattr(tok, "semrole"):
+                    for key, values in tok.semrole.items():
+                        for value in values:
+                            refered_entities.append(value.ant_ref())
+        return refered_entities
+    @staticmethod
+    def __set_entity_links__(document: nlelement.Document, entity_id_table, from_label):
+        if from_label:
+            for tok in nlelement.tokens(document):
+                if hasattr(tok, "coreference_link"):
+                    for key, value in tok.coreference_link.items():
+                        ref = value.antecedent_ref
+                        if not hasattr(tok, "entity_links"):
+                                tok.entity_links = dict()
+                        if key not in tok.entity_links:
+                            tok.entity_links[key] = []
+                        tok.entity_links[key].append(
+                            (entity_id_table[ref.to_tuple()], value.label, value.probable)
+                        )
+                elif hasattr(tok, "semroles"):
+                    for key, value in tok.semroles.items():
+                        ref = value
+                        if not hasattr(tok, "entity_links"):
+                                tok.entity_links = dict()
+                        if key not in tok.entity_links:
+                            tok.entity_links[key] = []
+                        tok.entity_links[key].append(
+                            (entity_id_table[ref.to_tuple()], value.label, value.probable)
+                        )
+        else:
+            for tok in nlelement.tokens(document):
+                if hasattr(tok, "predicate_term"):
+                    for key, values in tok.predicate_term.items():
+                        for value in values:
+                            ref = nlelement.TokenReference(value.ant_sid, value.ant_tid)
+                            if not hasattr(tok, "entity_links"):
+                                tok.entity_links = dict()
+                            if key not in tok.entity_links:
+                                tok.entity_links[key] = []
+                            tok.entity_links[key].append(
+                                (entity_id_table[ref.to_tuple()], value.label, value.probable)
+                            )
+                elif hasattr(tok, "coreference"):
+                    values = tok.coreference
                     for value in values:
-                        refered_entities.append(value.ant_ref())
-
+                        ref = nlelement.TokenReference(value.ant_sid, value.ant_tid)
+                        if not hasattr(tok, "entity_links"):
+                            tok.entity_links = dict()
+                        if 'eq' not in tok.entity_links:
+                            tok.entity_links['eq'] = []
+                        tok.entity_links['eq'].append((entity_id_table[ref.to_tuple()], value.label, value.probable))
+                elif hasattr(tok, "semrole"):
+                    for key, values in tok.semrole.items():
+                        for value in values:
+                            ref = nlelement.make_reference(value)
+                            if not hasattr(tok, "entity_links"):
+                                tok.entity_links = dict()
+                            if key in tok.entity_links:
+                                tok.entity_links[key].append(entity_id_table[ref.to_tuple()])
+    @staticmethod
+    def preprocess_doc(document: nlelement.Document, from_label):
+        """entityの参照生成のためにid=?,eq=?形式のメンバをあらかじめtokenに張り付ける
+        """
+        refered_entities = CabochaDumper.__get_refered_entities__(document, from_label=from_label)
         refered_entities.sort()
         del_list = []
         last_ent = None
@@ -579,44 +651,16 @@ class CabochaDumper:
         for e_id, ref in enumerate(refered_entities):
             setattr(document.refer(ref), "entity_id", e_id)
             entity_id_table[ref.to_tuple()] = e_id
-        for tok in nlelement.tokens(document):
-            if hasattr(tok, "predicate_term"):
-                for key, values in tok.predicate_term.items():
-                    for value in values:
-                        ref = nlelement.TokenReference(value.ant_sid, value.ant_tid)
-                        if not hasattr(tok, "entity_links"):
-                            tok.entity_links = dict()
-                        if key not in tok.entity_links:
-                            tok.entity_links[key] = []
-                        tok.entity_links[key].append(
-                            (entity_id_table[ref.to_tuple()], value.label, value.probable)
-                        )
-            elif hasattr(tok, "coreference"):
-                values = tok.coreference
-                for value in values:
-                    ref = nlelement.TokenReference(value.ant_sid, value.ant_tid)
-                    if not hasattr(tok, "entity_links"):
-                        tok.entity_links = dict()
-                    if 'eq' not in tok.entity_links:
-                        tok.entity_links['eq'] = []
-                    tok.entity_links['eq'].append((entity_id_table[ref.to_tuple()], value.label, value.probable))
-            elif hasattr(tok, "semrole"):
-                for key, values in tok.semrole.items():
-                    for value in values:
-                        ref = nlelement.make_reference(value)
-                        if not hasattr(tok, "entity_links"):
-                            tok.entity_links = dict()
-                        if key in tok.entity_links:
-                            tok.entity_links[key].append(entity_id_table[ref.to_tuple()])
+        CabochaDumper.__set_entity_links__(document, entity_id_table, from_label=from_label)
     @staticmethod
     def postproccess_doc(document: nlelement.Document):
         for tok in nlelement.tokens(document):
             delattr(tok, "entity_links")
     @staticmethod
-    def doc_to_format(document: nlelement.Document):
+    def doc_to_format(document: nlelement.Document, from_label=False):
         """DocumentオブジェクトからCaboChaフォーマットを生成する
         """
-        CabochaDumper.preprocess_doc(document)
+        CabochaDumper.preprocess_doc(document, from_label)
         fmt_text = ''
         for sentence in document.sentences:
             fmt_text += CabochaDumper.sent_to_format(sentence)
@@ -730,6 +774,10 @@ def load_to_tuple(text, single_doc=False):
     if single_doc:
         return result[0]
     return result
+def dump_doc(elem, from_label=False):
+    if isinstance(elem, nlelement.Document):
+        return CabochaDumper.doc_to_format(elem, from_label=from_label)
+    raise TypeError('The function could dump not {0} but Document'.format(type(elem)))
 def dump(elem):
     if isinstance(elem, nlelement.Document):
         return CabochaDumper.doc_to_format(elem)
