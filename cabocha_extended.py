@@ -589,7 +589,7 @@ class CabochaDumper:
                         if key not in tok.entity_links:
                             tok.entity_links[key] = []
                         tok.entity_links[key].append(
-                            (entity_id_table[ref.to_tuple()], value.label, value.probable)
+                            (entity_id_table[ref.to_tuple()], 1.0, 0.0)
                         )
                 elif hasattr(tok, "semroles"):
                     for key, value in tok.semroles.items():
@@ -599,7 +599,7 @@ class CabochaDumper:
                         if key not in tok.entity_links:
                             tok.entity_links[key] = []
                         tok.entity_links[key].append(
-                            (entity_id_table[ref.to_tuple()], value.label, value.probable)
+                            (entity_id_table[ref.to_tuple()], 1.0, 0.0)
                         )
         else:
             for tok in nlelement.tokens(document):
