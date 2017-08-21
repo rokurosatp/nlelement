@@ -547,8 +547,9 @@ class CabochaLoader:
 class CabochaDumper:
     @staticmethod
     def __get_refered_entities__(document: nlelement.Document, from_label):
-        """synchaに入力するためcoreference_link, semrolesメンバに設定されているラベル値を
-        推定値を設定するpredicate_term, coreference, semroleメンバにコピーする
+        """共参照関係の先行詞、述語項、意味役割になりうる項を列挙
+            コーパスのラベルを参照する場合(from_label=True),coreference_link, semrolesから取る
+            ツール出力値を参照する場合(from_label=False)predicate_term, coreference, semroleから取得する
         """
         
         refered_entities = []
@@ -556,10 +557,14 @@ class CabochaDumper:
             for tok in nlelement.tokens(document):
                 if hasattr(tok, "coreference_link"):
                     for key, value in tok.coreference_link.items():
+                        if value.antecedent_ref is None:
+                            continue
                         refered_entities.append(value.antecedent_ref)                            
                 elif hasattr(tok, "semroles"):
                     for key, value in tok.semroles.items():
                         # 確か
+                        if value is None:
+                            continue
                         refered_entities.append(value)                            
                     refered_entities.sort()
         else:
@@ -567,15 +572,24 @@ class CabochaDumper:
                 if hasattr(tok, "predicate_term"):
                     for key, values in tok.predicate_term.items():
                         for value in values:
-                            refered_entities.append(nlelement.TokenReference(value.ant_sid, value.ant_tid))
+                            ant_ref = value.ant_ref()
+                            if ant_ref is None:
+                                continue
+                            refered_entities.append(ant_ref)
                 elif hasattr(tok, "coreference"):
                     values = getattr(tok, "coreference")
                     for value in values:
-                        refered_entities.append(nlelement.TokenReference(value.ant_sid, value.ant_tid))
+                            ant_ref = value.ant_ref()
+                            if ant_ref is None:
+                                continue
+                            refered_entities.append(ant_ref)
                 elif hasattr(tok, "semrole"):
                     for key, values in tok.semrole.items():
                         for value in values:
-                            refered_entities.append(value.ant_ref())
+                            ant_ref = value.ant_ref()
+                            if ant_ref is None:
+                                continue
+                            refered_entities.append(ant_ref)
         return refered_entities
     @staticmethod
     def __set_entity_links__(document: nlelement.Document, entity_id_table, from_label):
