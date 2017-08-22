@@ -27,6 +27,22 @@ class TokenReference:
         return self.sid == value.sid and self.tid == value.tid
     def __repr__(self):
         return '<Tk:{0},{1}>'.format(self.sid, self.tid)
+class ExoReference:
+    """外界のシンボルの参照(未使用)
+    """
+    def __init__(self, name=None):
+        if name is None:
+            self.name = 'Unknown'
+    def to_tuple(self):
+        return (-2, -2)
+    def __bool__(self):
+        return False
+    def __lt__(self, value):
+        if isinstance(value, ExoReference):
+            return self.name < value.name
+        return True
+    def __repr__(self):
+        return '<Exo: {}>'.format(self.name)
 
 def make_reference(element):
     if isinstance(element, Chunk):
@@ -34,7 +50,7 @@ def make_reference(element):
     elif isinstance(element, Token):
         return TokenReference(element.sid, element.tid)
     elif isinstance(element, Sentence):
-        return element.sid
+        return element.sid    
     return None
 """
 KNBCの入力だけにとどまらなくなってきたので移動
@@ -56,21 +72,8 @@ class Document:
         print(self.name)
         for sent in self.sentences:
             sent.print_surfaces()
-    def print_coreference_tags(self):
-        """存在する共参照関係を標準出力に表示
-        """
-        for sent in self.sentences:
-            print(sent.get_surface())
-            for token in sent.tokens:
-                for name, coref in token.coreference_link.items():
-                    if name == 'coref':
-                        coref_chunk = coref.get_chunk(self)
-                        coref_surf = coref.surface
-                        if coref_chunk is not None:
-                            coref_surf = coref_chunk.get_surface()
-                        print('\tana :', token.get_surface(), '\tant:', coref_surf)
-    def get_coreference_list(self):
-        """文章内に存在する共参照関係を取得
+    def get_coreference_labels(self):
+        """文章内に存在する共参照関係ラベルを取得
         """
         result = []
         for sent in self.sentences:
@@ -79,8 +82,8 @@ class Document:
                     if name == 'coref':
                         result.append(coref.get_feature_tuple())
         return result
-    def get_predicate_term_list(self):
-        """文章内に存在する述語項構造を取得
+    def get_predicate_labels(self):
+        """文章内に存在する述語項構造ラベルを取得
         """
         case_normalize_table = {
             'ガ':'ga',
@@ -240,7 +243,7 @@ class CoreferenceEntry:
     """共参照関係のデータ
     文内の位置の参照なんだけど引数が爆増えするのでクラスを作ったほうがいいかもしれない
     """
-    def __init__(self, anaphora_ref, antecedent_ref, begin_token, end_token, surface):
+    def __init__(self, anaphora_ref, antecedent_ref, begin_token=None, end_token=None, surface=None):
         """初期化、生成するときは文内の番号を参照する。
         Args:
             anaphora_ref (TokenReference): 照応詞の参照
@@ -251,7 +254,7 @@ class CoreferenceEntry:
         """
         self.anaphora_ref = anaphora_ref
         self.antecedent_ref = antecedent_ref
-        (self.begin_token, self.end_token, self.surface) = (begin_token, end_token, surface)
+        #(self.begin_token, self.end_token, self.surface) = (begin_token, end_token, surface)
     def is_in_sentence(self):
         """文内の照応かどうかを判定
         先行詞のsidとcidが負でなければ文章内で照応している
@@ -270,11 +273,13 @@ class CoreferenceEntry:
     def get_feature_tuple(self):
         """素性を直線化したタプルに変換
         """
+        if self.antecedent_ref is None:
+            return (-1, -1, *self.anaphora_ref.to_tuple())
         return (*self.antecedent_ref.to_tuple(), *self.anaphora_ref.to_tuple())
     def get_coref_surf(self, document):
         """先行詞の表層表現を取得
         """
-        return document.refer(self.antecedent_ref).get_surface()+ document.refer(self.anaphora_ref).get_surface()
+        return document.refer(self.antecedent_ref).get_surface()+":"+document.refer(self.anaphora_ref).get_surface()
 class Chunk:
     """文節チャンクのクラス
     """
