@@ -630,7 +630,7 @@ class CabochaDumper:
                         tok.entity_links[key].append(
                             (entity_id_table[ref.to_tuple()], 1.0, 0.0)
                         )
-                elif hasattr(tok, "semroles"):
+                if hasattr(tok, "semroles"):
                     for key, value in tok.semroles.items():
                         ref = value
                         if not hasattr(tok, "entity_links"):
@@ -653,7 +653,7 @@ class CabochaDumper:
                             tok.entity_links[key].append(
                                 (entity_id_table[ref.to_tuple()], value.label, value.probable)
                             )
-                elif hasattr(tok, "coreference"):
+                if hasattr(tok, "coreference"):
                     values = tok.coreference
                     for value in values:
                         ref = nlelement.TokenReference(value.ant_sid, value.ant_tid)
@@ -662,7 +662,7 @@ class CabochaDumper:
                         if 'eq' not in tok.entity_links:
                             tok.entity_links['eq'] = []
                         tok.entity_links['eq'].append((entity_id_table[ref.to_tuple()], value.label, value.probable))
-                elif hasattr(tok, "semrole"):
+                if hasattr(tok, "semrole"):
                     for key, values in tok.semrole.items():
                         for value in values:
                             ref = nlelement.make_reference(value)
