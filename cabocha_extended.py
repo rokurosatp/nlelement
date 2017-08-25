@@ -266,7 +266,7 @@ def __get_depend_number__(expr):
     return int(expr.replace('D', '').replace('P', '').replace('I', ''))
 
 class CabochaLoader:
-    def __init__(self, directory):
+    def __init__(self, directory, as_label=False):
         self.directory = directory
         self.target_file = re.compile(r'.*\.(cab|cabocha)$')
         self.filenamegetter = re.compile(r'.*[\\|/](.+)\.(cab|cabocha)$')
@@ -278,6 +278,7 @@ class CabochaLoader:
         self.line_num = None
         self.ids = loadercommon.NlElementIds()
         self.entity_ids = dict()
+        self.as_label = as_label
     def __get_docname__(self, filename):
         basename = self.filenamegetter.match(filename).group(1)
         docname = '_'.join(basename.split('_')[-2:])
@@ -378,51 +379,76 @@ class CabochaLoader:
         #print("\nresolve entity id")
         for tok in nlelement.tokens(doc):
             if hasattr(tok, "entity_links"):
-                for key, value in tok.entity_links.items():
-                    if key in ['ga', 'o', 'ni']:
-                        for entity_tup in value:
-                            if entity_tup[0] in self.entity_ids:
-                                if not hasattr(tok, "predicate_term"):
-                                    tok.predicate_term = dict()
-                                if key not in tok.predicate_term:
-                                    tok.predicate_term[key] = []
-                                ana_ref = nlelement.make_reference(tok)
-                                ant_tok = self.entity_ids[entity_tup[0]]
-                                ant_ref = nlelement.make_reference(ant_tok)
-                                tok.predicate_term[key].append(
-                                    argument.PredicateArgument(
-                                        *ana_ref.to_tuple(), *ant_ref.to_tuple(), key, *entity_tup[1:]
+                if not self.as_label:
+                    for key, value in tok.entity_links.items():
+                        if key in ['ga', 'o', 'ni']:
+                            for entity_tup in value:
+                                if entity_tup[0] in self.entity_ids:
+                                    if not hasattr(tok, "predicate_term"):
+                                        tok.predicate_term = dict()
+                                    if key not in tok.predicate_term:
+                                        tok.predicate_term[key] = []
+                                    ana_ref = nlelement.make_reference(tok)
+                                    ant_tok = self.entity_ids[entity_tup[0]]
+                                    ant_ref = nlelement.make_reference(ant_tok)
+                                    tok.predicate_term[key].append(
+                                        argument.PredicateArgument(
+                                            *ana_ref.to_tuple(), *ant_ref.to_tuple(), key, *entity_tup[1:]
+                                        )
                                     )
-                                )
-                    elif key == "eq":
-                        for entity_tup in value:
-                            if entity_tup[0] in self.entity_ids:
-                                #print('eq_resolve')
-                                if not hasattr(tok, 'coreference'):
-                                    setattr(tok, 'coreference', [])
-                                ant_tok = self.entity_ids[entity_tup[0]]
-                                ant_ref = nlelement.make_reference(ant_tok)
-                                ana_ref = nlelement.make_reference(tok)
-                                tok.coreference.append(
-                                    argument.CoreferenceArgument(
-                                        *ana_ref.to_tuple(), *ant_ref.to_tuple(), *entity_tup[1:]
+                        elif key == "eq":
+                            for entity_tup in value:
+                                if entity_tup[0] in self.entity_ids:
+                                    #print('eq_resolve')
+                                    if not hasattr(tok, 'coreference'):
+                                        setattr(tok, 'coreference', [])
+                                    ant_tok = self.entity_ids[entity_tup[0]]
+                                    ant_ref = nlelement.make_reference(ant_tok)
+                                    ana_ref = nlelement.make_reference(tok)
+                                    tok.coreference.append(
+                                        argument.CoreferenceArgument(
+                                            *ana_ref.to_tuple(), *ant_ref.to_tuple(), *entity_tup[1:]
+                                        )
                                     )
-                                )
-                    else:
-                        for entity_tup in value:
-                            if entity_tup in self.entity_ids:
-                                if not hasattr(tok, "semrole"):
-                                    tok.semrole = dict()
-                                if key not in tok.semrole:
-                                    tok.semrole[key] = []
-                                ant_tok = self.entity_ids[entity_tup]
-                                ant_ref = nlelement.make_reference(ant_tok)
-                                ana_ref = nlelement.make_reference(tok)
-                                tok.semrole[key].append(
-                                    argument.PredicateArgument(
-                                        *ana_ref.to_tuple(), *ant_ref.to_tuple(), key, *entity_tup[1:]
+                        else:
+                            for entity_tup in value:
+                                if entity_tup in self.entity_ids:
+                                    if not hasattr(tok, "semrole"):
+                                        tok.semrole = dict()
+                                    if key not in tok.semrole:
+                                        tok.semrole[key] = []
+                                    ant_tok = self.entity_ids[entity_tup]
+                                    ant_ref = nlelement.make_reference(ant_tok)
+                                    ana_ref = nlelement.make_reference(tok)
+                                    tok.semrole[key].append(
+                                        argument.PredicateArgument(
+                                            *ana_ref.to_tuple(), *ant_ref.to_tuple(), key, *entity_tup[1:]
+                                        )
                                     )
-                                )
+                else:
+                    for key, value in tok.entity_links.items():
+                        if key in ['ga', 'o', 'ni', "eq"]:
+                            for entity_tup in value:
+                                if entity_tup[0] in self.entity_ids:
+                                    if not hasattr(tok, "coreference_link"):
+                                        tok.predicate_term = dict()
+                                    if key not in tok.predicate_term:
+                                        tok.predicate_term[key] = []
+                                    ana_ref = nlelement.make_reference(tok)
+                                    ant_tok = self.entity_ids[entity_tup[0]]
+                                    ant_ref = nlelement.make_reference(ant_tok)
+                                    tok.coreference_link[key] = nlelement.CoreferenceEntry(
+                                        ana_ref, ant_ref, None, None, ''
+                                    )
+                        else:
+                            for entity_tup in value:
+                                if entity_tup in self.entity_ids:
+                                    if not hasattr(tok, "semrole"):
+                                        tok.semrole = dict()
+                                    if key not in tok.semrole:
+                                        tok.semrole[key] = []
+                                    ant_tok = self.entity_ids[entity_tup]
+                                    tok.semroles[key] = ant_tok
                 delattr(tok, "entity_links")
 
     def __load_chunk__(self, line, sid):
@@ -751,8 +777,8 @@ def load(dirname):
     loader = CabochaLoader(dirname)
     return loader.load()
 
-def load_from_text(text):
-    loader = CabochaLoader('')
+def load_from_text(text, as_label=False):
+    loader = CabochaLoader('', as_label=as_label)
     file = io.StringIO(text)
     result = loader.__load_document__(file)
     file.close()
