@@ -282,7 +282,7 @@ class DatabaseLoader:
                     else:
                         print('ana: {0}, ant: {1}'.format(anaphora_id, antecedent_id), file=self.file)
                 elif name in case_normalize_table:
-                    case = case_normalize_table[name]
+                    case = name# case_normalize_table[name]
                     anaphora_id = self.__refer_token_id__(cursor, doc_id, coref.anaphora_ref)
                     antecedent_id = self.__refer_token_id__(cursor, doc_id, coref.antecedent_ref)
                     if anaphora_id and anaphora_id >= 0:
