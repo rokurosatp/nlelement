@@ -551,7 +551,6 @@ class CabochaDumper:
             コーパスのラベルを参照する場合(from_label=True),coreference_link, semrolesから取る
             ツール出力値を参照する場合(from_label=False)predicate_term, coreference, semroleから取得する
         """
-        
         refered_entities = []
         if from_label:
             for tok in nlelement.tokens(document):
