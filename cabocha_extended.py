@@ -585,14 +585,14 @@ class CabochaDumper:
                         if value.antecedent_ref is None:
                             continue
                         refered_entities.append(value.antecedent_ref)                            
-                elif hasattr(tok, "semroles"):
+                if hasattr(tok, "semroles"):
                     for key, value in tok.semroles.items():
                         # 確か
                         if value is None:
                             continue
-                        refered_entities.append(value)                            
+                        refered_entities.append(nlelement.make_reference(value))                            
                     refered_entities.sort()
-        if dump_type == ['scored_output', 'result']:
+        if dump_type in ['scored_output', 'result']:
             for tok in nlelement.tokens(document):
                 if hasattr(tok, "predicate_term"):
                     for key, values in tok.predicate_term.items():
@@ -603,7 +603,7 @@ class CabochaDumper:
                             if ant_ref is None:
                                 continue
                             refered_entities.append(ant_ref)
-                elif hasattr(tok, "coreference"):
+                if hasattr(tok, "coreference"):
                     values = getattr(tok, "coreference")
                     for value in values:
                             if dump_type == 'result' and value.label == 0.0:
@@ -612,7 +612,7 @@ class CabochaDumper:
                             if ant_ref is None:
                                 continue
                             refered_entities.append(ant_ref)
-                elif hasattr(tok, "semrole"):
+                if hasattr(tok, "semrole"):
                     for key, values in tok.semrole.items():
                         for value in values:
                             if dump_type == 'result' and value.label == 0.0:
@@ -633,19 +633,29 @@ class CabochaDumper:
                                 tok.entity_links = dict()
                         if key not in tok.entity_links:
                             tok.entity_links[key] = []
-                        tok.entity_links[key].append(
-                            (entity_id_table[ref.to_tuple()], 1.0, 0.0)
-                        )
+                        if ref.to_tuple() in entity_id_table:
+                            tok.entity_links[key].append(
+                                (entity_id_table[ref.to_tuple()], 1.0, 0.0)
+                            )
+                        else:
+                            tok.entity_links[key].append(
+                                (-1, 1.0, 0.0)
+                            )
                 if hasattr(tok, "semroles"):
                     for key, value in tok.semroles.items():
-                        ref = value
+                        ref = nlelement.make_reference(value)
                         if not hasattr(tok, "entity_links"):
-                                tok.entity_links = dict()
+                            tok.entity_links = dict()
                         if key not in tok.entity_links:
                             tok.entity_links[key] = []
-                        tok.entity_links[key].append(
-                            (entity_id_table[ref.to_tuple()], 1.0, 0.0)
-                        )
+                        if ref.to_tuple() in entity_id_table:
+                            tok.entity_links[key].append(
+                                (entity_id_table[ref.to_tuple()], 1.0, 0.0)
+                            )
+                        else:
+                            tok.entity_links[key].append(
+                                (-1, 1.0, 0.0)
+                            )
         if dump_type in ['scored_output', 'result']:
             for tok in nlelement.tokens(document):
                 if hasattr(tok, "predicate_term"):
@@ -661,6 +671,7 @@ class CabochaDumper:
                             tok.entity_links[key].append(
                                 (entity_id_table[ref.to_tuple()], value.label, value.probable)
                             )
+                            
                 if hasattr(tok, "coreference"):
                     values = tok.coreference
                     for value in values:
