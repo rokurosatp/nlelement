@@ -522,11 +522,11 @@ class DatabaseLoader:
             SELECT ID FROM TOKENS WHERE SENTENCE_ID IN (SELECT ID FROM SENTENCES WHERE DOCUMENT_ID = ?)
         )
         """, (doc_id,))
-        case_renormalize_table = {
-            "ga": "ガ",
-            "wo": "ヲ",
-            "ni": "二",
-        }
+        #case_renormalize_table = {
+        #    "ga": "ガ",
+        #    "wo": "ヲ",
+        #    "ni": "二",
+        #}
         for ana_token_id, case, ant_token_id in cursor.fetchall():
             ana_stid = self.get_token_ref(ana_token_id)
             #self.tokenid_localize_table[ana_token_id] \
@@ -538,7 +538,7 @@ class DatabaseLoader:
                 ana_ref = nlelement.TokenReference(*ana_stid)
                 anaphora = document.refer(ana_ref)
                 ant_ref = nlelement.TokenReference(*ant_stid) if ant_stid is not None else None
-                case_kana = case_renormalize_table[case]
+                case_kana = case#case_renormalize_table[case]
                 if ant_stid and all(map(lambda x: x>=0, ant_stid)):
                     ant_surface = document.refer(ant_ref).surface 
                 else:
