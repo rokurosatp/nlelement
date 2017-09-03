@@ -266,7 +266,7 @@ def __get_depend_number__(expr):
     return int(expr.replace('D', '').replace('P', '').replace('I', ''))
 
 class CabochaLoader:
-    def __init__(self, directory, as_label=False):
+    def __init__(self, directory, as_label=False, use_standard=False):
         self.directory = directory
         self.target_file = re.compile(r'.*\.(cab|cabocha)$')
         self.filenamegetter = re.compile(r'.*[\\|/](.+)\.(cab|cabocha)$')
@@ -279,6 +279,7 @@ class CabochaLoader:
         self.ids = loadercommon.NlElementIds()
         self.entity_ids = dict()
         self.as_label = as_label
+        self.use_standard = use_standard
     def __get_docname__(self, filename):
         basename = self.filenamegetter.match(filename).group(1)
         docname = '_'.join(basename.split('_')[-2:])
@@ -528,36 +529,47 @@ class CabochaLoader:
                 tok.named_entity_part = ne_features[1] if len(ne_features) > 2 else ''
             elif re.match(r'(I|O)', anno):
                 pass
-            elif re.match(r'([^=]+=[\d\.;]+,?)+', anno):
+            elif not self.use_standard and re.match(r'([^=]+=[\w\d\.;]+,?)+', anno):
                 for id_resolver in anno.split(','):
-                    match = re.match(r'([^=]+)=([\d\.;]+)', id_resolver)
+                    match = re.match(r'([^=]+)=([\w\d\.;]+)', id_resolver)
                     if not match:
                         pass
-                    elif match.group(1) == 'id':
-                        tup = tuple(match.group(2).split())
-                        self.entity_ids[int(tup[0])] = tok
-                    elif match.group(1) == 'type':
-                        setattr(tok, 'token_type', match.group(2))
                     else:
-                        if not hasattr(tok, "entity_links"):
-                            setattr(tok, "entity_links", dict())
-                        tup = tuple(match.group(2).split(";"))
-                        key = match.group(1)
-                        if key in ['ga', 'o', 'ni']:
-                            if len(tup) == 3:
-                                if key not in tok.entity_links:
-                                    tok.entity_links[key] = []
-                                tok.entity_links[key].append((int(tup[0]), float(tup[1]), float(tup[2])))
-                        elif key == 'eq':
-                            #print('eq_load {}')                            
-                            if len(tup) == 3:
-                                if key not in tok.entity_links:
-                                    tok.entity_links[key] = []
-                                tok.entity_links[key].append((int(tup[0]), float(tup[1]), float(tup[2])))
-                        else:
-                            if key not in tok.entity_links:
-                                tok.entity_links[key] = []
-                            tok.entity_links[key].append((int(tup[0]), float(tup[1]), float(tup[2])))
+                        self.__handle_ntc_annotation__(tok, match.group(1), match.group(2))
+            elif self.use_standard and re.match(r'[^=]+=\"[\w\d\.]+\"', anno):
+                match = re.match(r'([^=]+)=\"([\w\d\.]+)\"', anno)
+                if not match:
+                    pass
+                else:
+                    self.__handle_ntc_annotation__(tok, match.group(1), match.group(2))
+    def __handle_ntc_annotation__(self, tok, left, right):
+        if left == 'id':
+            tup = tuple(right.split())
+            self.entity_ids[int(tup[0])] = tok
+        elif left == 'type':
+            setattr(tok, 'token_type', right)
+        else:
+            if not hasattr(tok, "entity_links"):
+                setattr(tok, "entity_links", dict())
+            tup = tuple(right.split(";"))
+            if len(tup) == 1:
+                tup = (tup[0], 1.0, 0.0)
+            key = left
+            if key in ['ga', 'o', 'ni']:
+                if len(tup) == 3:
+                    if key not in tok.entity_links:
+                        tok.entity_links[key] = []
+                    tok.entity_links[key].append((int(tup[0]), float(tup[1]), float(tup[2])))
+            elif key == 'eq':
+                #print('eq_load {}')                            
+                if len(tup) == 3:
+                    if key not in tok.entity_links:
+                        tok.entity_links[key] = []
+                    tok.entity_links[key].append((int(tup[0]), float(tup[1]), float(tup[2])))
+            else:
+                if key not in tok.entity_links:
+                    tok.entity_links[key] = []
+                tok.entity_links[key].append((int(tup[0]), float(tup[1]), float(tup[2])))
     def __token_post_process__(self, chunk, token):
         """トークンをチャンクに追加した後に追加したトークンに応じて属性値を変更する
         内容語の場合は機能表現の位置を+1するとか
@@ -658,12 +670,12 @@ class CabochaDumper:
                             tok.entity_links[key].append(
                                 (-1, 1.0, 0.0)
                             )
-        if dump_type in ['scored_output', 'result']:
+        if dump_type in ['scored_output', 'result', 'standard']:
             for tok in nlelement.tokens(document):
                 if hasattr(tok, "predicate_term"):
                     for key, values in tok.predicate_term.items():
                         for value in values:
-                            if dump_type == 'result' and value.label == 0.0:
+                            if dump_type in ['result', 'standard'] and value.label == 0.0:
                                 continue
                             ref = nlelement.TokenReference(value.ant_sid, value.ant_tid)
                             if not hasattr(tok, "entity_links"):
@@ -677,7 +689,7 @@ class CabochaDumper:
                 if hasattr(tok, "coreference"):
                     values = tok.coreference
                     for value in values:
-                        if dump_type == 'result' and value.label == 0.0:
+                        if dump_type in ['result', 'standard'] and value.label == 0.0:
                             continue
                         ref = nlelement.TokenReference(value.ant_sid, value.ant_tid)
                         if not hasattr(tok, "entity_links"):
@@ -688,7 +700,7 @@ class CabochaDumper:
                 if hasattr(tok, "semrole"):
                     for key, values in tok.semrole.items():
                         for value in values:
-                            if dump_type == 'result' and value.label == 0.0:
+                            if dump_type in ['result', 'standard'] and value.label == 0.0:
                                 continue
                             ref = nlelement.make_reference(value)
                             if not hasattr(tok, "entity_links"):
@@ -699,7 +711,7 @@ class CabochaDumper:
     def preprocess_doc(document: nlelement.Document, dump_type):
         """entityの参照生成のためにid=?,eq=?形式のメンバをあらかじめtokenに張り付ける
         """
-        if dump_type not in ['label', 'scored_output', 'result']:
+        if dump_type not in ['label', 'scored_output', 'result', 'standard']:
             raise KeyError('Invalid dump_type {}'.format(dump_type))
         refered_entities = CabochaDumper.__get_refered_entities__(document, dump_type=dump_type)
         refered_entities.sort()
@@ -729,18 +741,21 @@ class CabochaDumper:
         CabochaDumper.preprocess_doc(document, dump_type)
         fmt_text = ''
         for sentence in document.sentences:
-            fmt_text += CabochaDumper.sent_to_format(sentence)
+            if dump_type == 'standard':
+                fmt_text += CabochaDumper.sent_to_format(sentence, to_standard=True)            
+            else:
+                fmt_text += CabochaDumper.sent_to_format(sentence)
         fmt_text += 'EOT\n'
         return fmt_text
     @staticmethod
-    def sent_to_format(sentence: nlelement.Sentence):
+    def sent_to_format(sentence: nlelement.Sentence, to_standard=False):
         """SentenceオブジェクトからCaboChaフォーマットを生成する
         """
         fmt_text = ''
         for chunk in sentence.chunks:
             fmt_text += CabochaDumper.chunk_to_format(chunk)
             for token in chunk.tokens:
-                fmt_text += CabochaDumper.token_to_format(token)
+                fmt_text += CabochaDumper.token_to_format(token, to_standard=to_standard)
         fmt_text += 'EOS\n'
         return fmt_text
     @staticmethod
@@ -756,7 +771,7 @@ class CabochaDumper:
         fmt_text += ' 0.00000\n'
         return fmt_text
     @staticmethod
-    def token_to_format(token: nlelement.Token):
+    def token_to_format(token: nlelement.Token, to_standard=False):
         """TokenオブジェクトからCaboCha(ほぼMeCab)フォーマットを生成する
         """
         result = ''
@@ -773,8 +788,10 @@ class CabochaDumper:
 
         result += token.read + '\t'
         result += 'B-'+token.named_entity if token.named_entity != '' else 'O'
-
-        entity_anno = CabochaDumper.__annotation_to_format__(token)
+        if to_standard:
+            entity_anno = CabochaDumper.__annotation_to_standard_format__(token)
+        else:
+            entity_anno = CabochaDumper.__annotation_to_format__(token)
         if entity_anno:
             result += '\t'
             result += entity_anno
@@ -801,6 +818,25 @@ class CabochaDumper:
         if hasattr(token, 'token_type'):
             result_items.append('type={}'.format(getattr(token, 'token_type')))
         return ','.join(result_items)
+    @staticmethod
+    def __annotation_to_standard_format__(token: nlelement.Token):
+        result_items = []
+        if hasattr(token, 'entity_id'):
+            result_items.append('id="{}"'.format(getattr(token, "entity_id")))
+        if hasattr(token, 'entity_links'):
+            for key, value in getattr(token, "entity_links").items():
+                if key in ['ga', 'o', 'ni']:
+                    for val in value:
+                        result_items.append('{}="{}"'.format(key, val[0]))
+                elif key == 'eq':
+                    for val in value:
+                        result_items.append('{}="{}"'.format(key, val[0]))
+                else:
+                    for val in value:
+                        result_items.append('{}="{}"'.format(key, val[0]))
+        if hasattr(token, 'token_type'):
+            result_items.append('type="{}"'.format(getattr(token, 'token_type')))
+        return ' '.join(result_items)
 
 def load(dirname):
     loader = CabochaLoader(dirname)
