@@ -542,6 +542,14 @@ class CabochaLoader:
                     pass
                 else:
                     self.__handle_ntc_annotation__(tok, match.group(1), match.group(2))
+            elif self.use_standard:
+                for id_resolver in anno.split(' '):
+                    match = re.match(r'([^=]+)=\"([\w\d\.]+)\"', id_resolver)
+                    if not match:
+                        pass
+                    else:
+                        self.__handle_ntc_annotation__(tok, match.group(1), match.group(2))
+            
     def __handle_ntc_annotation__(self, tok, left, right):
         if left == 'id':
             tup = tuple(right.split())
