@@ -735,13 +735,15 @@ class CabochaDumper:
         for tok in nlelement.tokens(document):
             delattr(tok, "entity_links")
     @staticmethod
-    def doc_to_format(document: nlelement.Document, dump_type='scored_output'):
+    def doc_to_format(document: nlelement.Document, dump_type='scored_output', with_header=False):
         """DocumentオブジェクトからCaboChaフォーマットを生成する
         """
         CabochaDumper.preprocess_doc(document, dump_type)
         fmt_text = ''
+        if with_header:
+            fmt_text += '# DOCNAME:{}'.format(document.name)
         for sentence in document.sentences:
-            if dump_type == 'standard':
+            if dump_type == 'standard' or dump_type == 'result':
                 fmt_text += CabochaDumper.sent_to_format(sentence, to_standard=True)            
             else:
                 fmt_text += CabochaDumper.sent_to_format(sentence)
@@ -884,10 +886,10 @@ def dump_result_doc(elem):
         return CabochaDumper.doc_to_format(elem, dump_type='result')
     raise TypeError('The function could dump not {0} but Document'.format(type(elem)))
 
-def dump_doc(elem, from_label=False):
+def dump_doc(elem, from_label=False, with_header=False):
     if isinstance(elem, nlelement.Document):
         return CabochaDumper.doc_to_format(
-            elem, dump_type='label' if from_label else 'scored_output')
+            elem, dump_type='label' if from_label else 'scored_output', with_header=with_header)
     raise TypeError('The function could dump not {0} but Document'.format(type(elem)))
 
 def dump(elem):
