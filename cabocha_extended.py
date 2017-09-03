@@ -536,6 +536,8 @@ class CabochaLoader:
                     elif match.group(1) == 'id':
                         tup = tuple(match.group(2).split())
                         self.entity_ids[int(tup[0])] = tok
+                    elif match.group(1) == 'type':
+                        setattr(tok, 'token_type', match.group(2))
                     else:
                         if not hasattr(tok, "entity_links"):
                             setattr(tok, "entity_links", dict())
@@ -796,6 +798,8 @@ class CabochaDumper:
                 else:
                     for val in value:
                         result_items.append('{}={};{};{}'.format(key, *val))
+        if hasattr(token, 'token_type'):
+            result_items.append('type={}'.format(getattr(token, 'token_type')))
         return ','.join(result_items)
 
 def load(dirname):
