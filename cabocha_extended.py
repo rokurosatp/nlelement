@@ -655,7 +655,7 @@ class CabochaDumper:
                                 tok.entity_links = dict()
                         if key not in tok.entity_links:
                             tok.entity_links[key] = []
-                        if ref.to_tuple() in entity_id_table:
+                        if ref is not None and ref.to_tuple() in entity_id_table:
                             tok.entity_links[key].append(
                                 (entity_id_table[ref.to_tuple()], 1.0, 0.0)
                             )
@@ -670,7 +670,7 @@ class CabochaDumper:
                             tok.entity_links = dict()
                         if key not in tok.entity_links:
                             tok.entity_links[key] = []
-                        if ref.to_tuple() in entity_id_table:
+                        if ref is not None and ref.to_tuple() in entity_id_table:
                             tok.entity_links[key].append(
                                 (entity_id_table[ref.to_tuple()], 1.0, 0.0)
                             )
