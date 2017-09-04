@@ -555,7 +555,7 @@ class CabochaLoader:
             tup = tuple(right.split())
             self.entity_ids[int(tup[0])] = tok
         elif left == 'type':
-            setattr(tok, 'token_type', right)
+            tok.pas_type = right
         else:
             if not hasattr(tok, "entity_links"):
                 setattr(tok, "entity_links", dict())
@@ -825,8 +825,8 @@ class CabochaDumper:
                 else:
                     for val in value:
                         result_items.append('{}={};{};{}'.format(key, *val))
-        if hasattr(token, 'token_type'):
-            result_items.append('type={}'.format(getattr(token, 'token_type')))
+        if token.pas_type:
+            result_items.append('type={}'.format(token.pas_type))
         return ','.join(result_items)
     @staticmethod
     def __annotation_to_standard_format__(token: nlelement.Token):
@@ -844,8 +844,8 @@ class CabochaDumper:
                 else:
                     for val in value:
                         result_items.append('{}="{}"'.format(key, val[0]))
-        if hasattr(token, 'token_type'):
-            result_items.append('type="{}"'.format(getattr(token, 'token_type')))
+        if token.pas_type:
+            result_items.append('type="{}"'.format(token.pas_type))
         return ' '.join(result_items)
 
 def load(dirname):
