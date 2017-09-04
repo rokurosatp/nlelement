@@ -254,6 +254,7 @@ class CoreferenceEntry:
         """
         self.anaphora_ref = anaphora_ref
         self.antecedent_ref = antecedent_ref
+        self.link_type = None   # ゼロ照応の場合'zero'
         #(self.begin_token, self.end_token, self.surface) = (begin_token, end_token, surface)
     def is_in_sentence(self):
         """文内の照応かどうかを判定
@@ -452,6 +453,7 @@ class Token:
         self.other_features = []
         self.is_content = False
         self.coreference_link = {}
+        self.pas_type = None
     def print_members(self):
         """オブジェクトのメンバ変数を標準出力に表示
         """
@@ -650,4 +652,3 @@ def chunks(elem):
     elif isinstance(elem, Sentence):
         return elem.chunks
     raise NotImplementedError
-

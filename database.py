@@ -49,15 +49,15 @@ class DatabaseLoader:
             CREATE TABLE Tokens(
                 ID INTEGER PRIMARY KEY, DOCUMENT_ID INTEGER, SENTENCE_ID INTEGER, CHUNK_ID INTEGER,
                 TID INTEGER, SURFACE TEXT, BASE TEXT, READ TEXT, PART TEXT, ATTR1 TEXT, ATTR2 TEXT,
-                CONJ_TYPE TEXT, CONJ_FORM TEXT, NAMED_ENTITY TEXT
+                CONJ_TYPE TEXT, CONJ_FORM TEXT, NAMED_ENTITY TEXT, PAS_TYPE TEXT
             );
             CREATE TABLE Pas_Annotated(ID INTEGER PRIMARY_KEY, NAME TEXT UNIQUE);
             CREATE TABLE Pth_Annotated(ID INTEGER PRIMARY_KEY, NAME TEXT UNIQUE);
             CREATE TABLE Pth_Annotated_Sent(ID INTEGER PRIMARY_KEY);
 
             CREATE TABLE Token_Tags(Token INTEGER, NAME TEXT, VALUE TEXT);
-            CREATE TABLE Coreference(ANAPHORA INTEGER UNIQUE, ANTECEDENT INTEGER);
-            CREATE TABLE PredicateTerm(PREDICATE INTEGER, CASEPT TEXT, ANTECEDENT INTEGER);
+            CREATE TABLE Coreference(ANAPHORA INTEGER UNIQUE, LINKTYPE TEXT, ANTECEDENT INTEGER);
+            CREATE TABLE PredicateTerm(PREDICATE INTEGER, CASEPT TEXT, LINKTYPE TEXT, ANTECEDENT INTEGER);
             CREATE TABLE SemanticRole(PREDICATE INTEGER, SEMROLE TEXT, ANTECEDENT INTEGER);
 
             CREATE INDEX Sentence_Idx ON Sentences(DOCUMENT_ID);
@@ -273,8 +273,8 @@ class DatabaseLoader:
                     if anaphora_id and anaphora_id >= 0:
                         try:
                             cursor.execute(
-                                "INSERT INTO Coreference(ANAPHORA, ANTECEDENT) VALUES (?, ?)",
-                                (anaphora_id, antecedent_id)
+                                "INSERT INTO Coreference(ANAPHORA, LINKTYPE, ANTECEDENT) VALUES (?, ?, ?)",
+                                (anaphora_id, coref.link_type, antecedent_id)
                             )
                         except sqlite3.IntegrityError as e:
                             print('ana: {0}, ant: {1}'.format(anaphora_id, antecedent_id), file=self.file)
@@ -288,8 +288,8 @@ class DatabaseLoader:
                     if anaphora_id and anaphora_id >= 0:
                         try:
                             cursor.execute(
-                                "INSERT INTO PredicateTerm(PREDICATE, CASEPT, ANTECEDENT) VALUES (?, ?, ?)",
-                                (anaphora_id, case, antecedent_id)
+                                "INSERT INTO PredicateTerm(PREDICATE, CASEPT, LINKTYPE, ANTECEDENT) VALUES (?, ?, ?, ?)",
+                                (anaphora_id, case, coref.link_type, antecedent_id)
                             )
                         except sqlite3.IntegrityError as e:
                             print('ana: {0}, ant: {1}'.format(anaphora_id, antecedent_id), file=self.file)
@@ -309,12 +309,15 @@ class DatabaseLoader:
                 return self
             def __next__(self):
                 tok = next(self.tok_iter)
-                return (doc_id, sent_id, chunk_id, tok.tid, tok.surface, tok.basic_surface, tok.read, tok.part, tok.attr1, tok.attr2, tok.conj_type, tok.conj_form, tok.named_entity)
+                return (
+                        doc_id, sent_id, chunk_id, tok.tid, tok.surface, tok.basic_surface, tok.read, tok.part, 
+                        tok.attr1, tok.attr2, tok.conj_type, tok.conj_form, tok.named_entity, tok.pas_type
+                    )
         cursor.executemany("""
             INSERT INTO TOKENS(
-                DOCUMENT_ID, SENTENCE_ID, CHUNK_ID, TID, SURFACE, BASE, READ, PART, ATTR1, ATTR2, CONJ_TYPE, CONJ_FORM, NAMED_ENTITY
+                DOCUMENT_ID, SENTENCE_ID, CHUNK_ID, TID, SURFACE, BASE, READ, PART, ATTR1, ATTR2, CONJ_TYPE, CONJ_FORM, NAMED_ENTITY, PAS_TYPE
             ) VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
             )
             """, MyGenerator(chunk, doc_id, sent_id, chunk_id))
     def load(self):
@@ -498,7 +501,7 @@ class DatabaseLoader:
                 SELECT ID FROM TOKENS WHERE SENTENCE_ID IN (SELECT ID FROM SENTENCES WHERE DOCUMENT_ID = ?)
             )
             """, (doc_id,))
-        for ana_token_id, ant_token_id in cursor.fetchall():
+        for ana_token_id, link_type, ant_token_id in cursor.fetchall():
             ana_stid = self.get_token_ref(ana_token_id)
             #self.tokenid_localize_table[ana_token_id] \
             #    if ana_token_id in self.tokenid_localize_table else None
@@ -516,6 +519,7 @@ class DatabaseLoader:
                 entry = nlelement.CoreferenceEntry(
                     ana_ref, ant_ref, -1, -1, ant_surface
                     )
+                entry.link_type = link_type
                 anaphora.coreference_link['coref'] = entry
         cursor.execute("""
         SELECT * FROM PredicateTerm WHERE Predicate IN (
@@ -527,7 +531,7 @@ class DatabaseLoader:
         #    "wo": "ヲ",
         #    "ni": "二",
         #}
-        for ana_token_id, case, ant_token_id in cursor.fetchall():
+        for ana_token_id, case, link_type, ant_token_id in cursor.fetchall():
             ana_stid = self.get_token_ref(ana_token_id)
             #self.tokenid_localize_table[ana_token_id] \
             #    if ana_token_id in self.tokenid_localize_table else None
@@ -546,13 +550,14 @@ class DatabaseLoader:
                 entry = nlelement.CoreferenceEntry(
                     ana_ref, ant_ref, -1, -1, ant_surface
                     )
+                entry.link_type = link_type
                 anaphora.coreference_link[case_kana] = entry
         cursor.close()
     def load_tokens(self, sentence_id, sentence):
         cursor = self.connector.cursor()
         tokens = []
         cursor.execute("SELECT * FROM TOKENS WHERE SENTENCE_ID = ? ORDER BY TID", (sentence_id,))
-        for token_id, document_id, sentence_id, chunk_id, tid, surface, base, read, part, attr1, attr2, conj_type, conj_form, named_entity in cursor.fetchall():
+        for token_id, document_id, sentence_id, chunk_id, tid, surface, base, read, part, attr1, attr2, conj_type, conj_form, named_entity, pas_type in cursor.fetchall():
             token = nlelement.Token()
             token.sid = sentence.sid
             token.tid = tid
@@ -565,6 +570,7 @@ class DatabaseLoader:
             token.pos = '-'.join((part, attr1, attr2))
             token.conj_type, token.conj_form = conj_type, conj_form
             token.named_entity = named_entity
+            token.pas_type = pas_type
             if token.part == '名詞':
                 token.sahen = (token.attr1 == 'サ変')
                 token.normalnoun = (token.attr1 == '一般')
