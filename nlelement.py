@@ -515,19 +515,26 @@ class ReferenceConverter:
                 break
             dest_count += chunk.get_length() if self.count_func is None else self.count_func(chunk)
         return dest_cid
-    def __convert_tid_only__(self, tid, dest_sent, src_sent):
+    def __convert_tid_only__(self, tid, dest_sent, src_sent, conv_type):
         count = 0
         for token in src_sent.tokens:
             if token.tid == tid:
+                #print('□', token.surface)
+                if conv_type == 'tail':
+                    count += token.get_length() if self.count_func is None else self.count_func(token)
                 break
             count += token.get_length() if self.count_func is None else self.count_func(token)
+            #print(token.surface, '({0})'.format(count))
         dest_tid = -1
         dest_count = 0
         for token in dest_sent.tokens:
-            if dest_count >= count:
+            length = token.get_length() if self.count_func is None else self.count_func(token)
+            if (dest_count + length > count and conv_type == 'head') or (dest_count + length >= count and conv_type == 'tail'):               
+                #print('■', token.surface)
                 dest_tid = token.tid
                 break
-            dest_count += token.get_length() if self.count_func is None else self.count_func(token)
+            dest_count += length
+            #print(token.surface, '({0} > {1})'.format(count, dest_count))
         return dest_tid
 
     def __convert_cid__(self, sid, cid):
@@ -556,12 +563,14 @@ class ReferenceConverter:
                 break
             dest_count += length
         return dest_sid, dest_cid
-    def __convert_tid__(self, sid, tid):
+    def __convert_tid__(self, sid, tid, conv_type):
         count = 0
         for sent in self.src_doc.sentences:
             if sent.sid == sid:
                 for token in sent.tokens:
                     if token.tid == tid:
+                        if conv_type == 'tail':
+                            count += token.get_length() if self.count_func is None else self.count_func(token)                    
                         break
                     count += token.get_length() if self.count_func is None else self.count_func(token)
                     #print(token.surface, '({0})'.format(count))
@@ -576,7 +585,7 @@ class ReferenceConverter:
             if dest_count + length > count:
                 for token in sent.tokens:
                     length = token.get_length() if self.count_func is None else self.count_func(token)
-                    if dest_count + length > count:
+                    if (dest_count + length > count and conv_type == 'head') or (dest_count + length >= count and conv_type == 'tail'):
                         dest_tid = token.tid
                         break
                     #print('@', token.surface, '({0},{1})'.format(dest_count+length, count))
@@ -586,7 +595,7 @@ class ReferenceConverter:
             #print('@', sent.get_surface(), '({0},{1})'.format(dest_count+length, count))
             dest_count += length
         return dest_sid, dest_tid
-    def convert(self, ref):
+    def convert(self, ref, conv_type='head'):
         if isinstance(ref, ChunkReference):
             if self.no_sid_convert:
                 dest_sid  = ref.sid
@@ -602,10 +611,10 @@ class ReferenceConverter:
                 dest_sid = ref.sid
                 src_sent = self.src_doc.refer_sentence(ref.sid)
                 dest_sent = self.dest_doc.refer_sentence(dest_sid)
-                dest_tid = self.__convert_tid_only__(ref.tid, dest_sent, src_sent)
+                dest_tid = self.__convert_tid_only__(ref.tid, dest_sent, src_sent, conv_type)
                 return TokenReference(dest_sid, dest_tid)
             else:
-                dest_sid, dest_tid = self.__convert_tid__(ref.sid, ref.tid)
+                dest_sid, dest_tid = self.__convert_tid__(ref.sid, ref.tid, conv_type)
                 return TokenReference(dest_sid, dest_tid)
         return None
 
@@ -652,3 +661,4 @@ def chunks(elem):
     elif isinstance(elem, Sentence):
         return elem.chunks
     raise NotImplementedError
+
