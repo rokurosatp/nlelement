@@ -1,5 +1,6 @@
 """サンプル用のデータセット（db）を生成する
 """
+
 from predicate.external import synchacall
 from nlelement import nlelement, database, cabocha_extended
 
