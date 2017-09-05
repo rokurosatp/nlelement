@@ -260,12 +260,8 @@ class DatabaseLoader:
             doc_id = cursor.fetchone()[0]
         else:
             doc_id = document_id
-        case_normalize_table = {
-            'ガ':'ga',
-            'ヲ':'wo',
-            '二':'ni',
-        }
-        for token in (token for sent in document.sentences for token in sent.tokens):
+        case_set = {'ga', 'o', 'ni'}
+        for token in nlelement.tokens(document):
             for name, coref in token.coreference_link.items():
                 if name == 'coref':
                     anaphora_id = self.__refer_token_id__(cursor, doc_id, coref.anaphora_ref)
@@ -281,7 +277,7 @@ class DatabaseLoader:
                             print(e, file=self.file)
                     else:
                         print('ana: {0}, ant: {1}'.format(anaphora_id, antecedent_id), file=self.file)
-                elif name in case_normalize_table:
+                elif name in case_set:
                     case = name# case_normalize_table[name]
                     anaphora_id = self.__refer_token_id__(cursor, doc_id, coref.anaphora_ref)
                     antecedent_id = self.__refer_token_id__(cursor, doc_id, coref.antecedent_ref)
@@ -296,7 +292,7 @@ class DatabaseLoader:
                             print(e)
                     else:
                         print('ana: {0}, ant: {1}'.format(anaphora_id, antecedent_id), file=self.file)
-                                             
+
     def add_tokens(self, cursor: sqlite3.Cursor, chunk: nlelement.Chunk, doc_id, sent_id, chunk_id):
         """データベースに単語を追加する
         """
