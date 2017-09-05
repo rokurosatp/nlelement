@@ -1,6 +1,7 @@
 """サンプル用のデータセット（db）を生成する
 """
-
+import os
+import pathlib
 from predicate.external import synchacall
 from nlelement import nlelement, database, cabocha_extended
 
@@ -31,6 +32,10 @@ def main():
         doc = cabocha_extended.load_from_text(result_str, as_label=True)[0]
         doc.name = name
         docs.append(doc)
-    sample_db = database.DatabaseLoader('dat/sample_corpus.db')
+    db_path = pathlib.Path('dat/sample_corpus.db')
+    if db_path.exists():
+        os.remove(str(db_path))
+    sample_db = database.DatabaseLoader(str(db_path))
     sample_db.create_tables()
+    #sample_db.update_views()
     sample_db.save(docs)

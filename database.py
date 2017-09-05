@@ -387,7 +387,7 @@ class DatabaseLoader:
         cursor.execute("SELECT COUNT(*) FROM DOCUMENTS")
         length = cursor.fetchone()[0]
         if name is None:
-            load_id = random.randrange(0, stop=length)
+            load_id = random.randrange(1, stop=length+1)
             cursor.execute("SELECT * FROM DOCUMENTS WHERE ID = ?", (load_id,))
         else:
             cursor.execute("SELECT * FROM DOCUMENTS WHERE NAME = ?", (name,))
