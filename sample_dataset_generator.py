@@ -1,6 +1,7 @@
 """サンプル用のデータセット（db）を生成する
 """
-
+import os
+import pathlib
 from predicate.external import synchacall
 from nlelement import nlelement, database, cabocha_extended
 
@@ -16,12 +17,25 @@ raw_samples = [
 """
 ]
 
+def sample_names():
+    sample_id = 0
+    while 1:
+        yield 'SAMPLE_{}'.format(sample_id)
+        sample_id += 1
+
 def main():
     app = synchacall.AppCall('predicate/external/syncha-0.3.1.1/syncha')
     docs = []
-    for raw_doc in raw_samples:
-        result_str = app.run('-I 0 -O 2 -u {}'.format('0'), raw_doc.rstrip("\n\r")+"\nEOT\n", throws=False)
-        doc = cabocha_extended.load_from_text(result_str, as_label=True)
+    for raw_doc, name in zip(raw_samples, sample_names()):
+        input_str = raw_doc.rstrip("\n") + "\nEOT\n"
+        result_str = app.run('-I 0 -O 2 -u {}'.format('0'), input_str, throws=False)
+        doc = cabocha_extended.load_from_text(result_str, as_label=True)[0]
+        doc.name = name
         docs.append(doc)
-    sample_db = database.DatabaseLoader('dat/sample_corpus.db')
+    db_path = pathlib.Path('dat/sample_corpus.db')
+    if db_path.exists():
+        os.remove(str(db_path))
+    sample_db = database.DatabaseLoader(str(db_path))
+    sample_db.create_tables()
+    #sample_db.update_views()
     sample_db.save(docs)

@@ -432,9 +432,9 @@ class CabochaLoader:
                             for entity_tup in value:
                                 if entity_tup[0] in self.entity_ids:
                                     if not hasattr(tok, "coreference_link"):
-                                        tok.predicate_term = dict()
-                                    if key not in tok.predicate_term:
-                                        tok.predicate_term[key] = []
+                                        tok.coreference_link = dict()
+                                    if key not in tok.coreference_link:
+                                        tok.coreference_link[key] = []
                                     ana_ref = nlelement.make_reference(tok)
                                     ant_tok = self.entity_ids[entity_tup[0]]
                                     ant_ref = nlelement.make_reference(ant_tok)

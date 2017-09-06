@@ -1,4 +1,5 @@
 import sqlite3
+import os
 from application import myprogress
 from . import nlelement
 from . import loadercommon
@@ -82,7 +83,8 @@ class DatabaseLoader:
         if isinstance(documents, list):
             if documents:
                 if isinstance(documents[0], nlelement.Document):
-                    self.file = open('/home/rokurou/Dropbox/Logs/db_coref.log', 'w')
+                    file_path = os.path.expanduser('~/Dropbox/Logs/db_coref.log')
+                    self.file = open(file_path, 'w')
                     cursor = self.connector.cursor()
                     self.add_documents(cursor, documents)
                     self.connector.commit()
@@ -385,7 +387,7 @@ class DatabaseLoader:
         cursor.execute("SELECT COUNT(*) FROM DOCUMENTS")
         length = cursor.fetchone()[0]
         if name is None:
-            load_id = random.randrange(0, stop=length)
+            load_id = random.randrange(1, stop=length+1)
             cursor.execute("SELECT * FROM DOCUMENTS WHERE ID = ?", (load_id,))
         else:
             cursor.execute("SELECT * FROM DOCUMENTS WHERE NAME = ?", (name,))
