@@ -815,7 +815,7 @@ class CabochaDumper:
         if hasattr(token, 'entity_id'):
             result_items.append('id={}'.format(getattr(token, "entity_id")))
         if hasattr(token, 'entity_links'):
-            print("entity_links: {}".format(token.entity_links))
+            #print("entity_links: {}".format(token.entity_links))
             for key, value in getattr(token, "entity_links").items():
                 if key in ['ga', 'o', 'ni']:
                     for val in value:
