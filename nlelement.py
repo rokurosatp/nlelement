@@ -100,8 +100,10 @@ class Document:
                     else:
                         feature_tuple = coref.get_feature_tuple()
                         case = name
+                    pred_sent = self.sentences[feature_tuple[3]]
+                    chunk_ref = pred_sent.chunk_from_token(pred_sent.tokens[feature_tuple[2]])
                     result.append(
-                        (feature_tuple[0], feature_tuple[1], feature_tuple[2], feature_tuple[3], case)
+                        (feature_tuple[0], feature_tuple[1], chunk_ref.sid, chunk_ref.cid, case)
                     )
         return result
     def refer(self, ref):
