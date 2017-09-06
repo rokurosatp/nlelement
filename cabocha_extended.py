@@ -781,6 +781,9 @@ class CabochaDumper:
         fmt_text += ' 0.00000\n'
         return fmt_text
     @staticmethod
+    def default_aster(expr):
+        return expr if expr else '*'
+    @staticmethod
     def token_to_format(token: nlelement.Token, to_standard=False):
         """TokenオブジェクトからCaboCha(ほぼMeCab)フォーマットを生成する
         """
@@ -788,11 +791,11 @@ class CabochaDumper:
         result += token.surface
         result += '\t'
         result += token.part + ','
-        result += token.attr1 + ','
-        result += token.attr2 + ','
+        result += CabochaDumper.default_aster(token.attr1) + ','
+        result += CabochaDumper.default_aster(token.attr2) + ','
         result += '*' + ','
-        result += token.conj_type + ','
-        result += token.conj_form + ','
+        result += CabochaDumper.default_aster(token.conj_type) + ','
+        result += CabochaDumper.default_aster(token.conj_form) + ','
         result += token.basic_surface + ','
         result += token.read + ','
 
