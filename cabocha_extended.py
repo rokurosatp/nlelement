@@ -659,7 +659,8 @@ class CabochaDumper:
                             tok.entity_links[key].append(
                                 (entity_id_table[ref.to_tuple()], 1.0, 0.0)
                             )
-                        else:
+                        elif dump_type == 'result':
+                            # ↑外界照応が適用されると非推奨になるかも
                             tok.entity_links[key].append(
                                 (-1, 1.0, 0.0)
                             )
@@ -674,7 +675,8 @@ class CabochaDumper:
                             tok.entity_links[key].append(
                                 (entity_id_table[ref.to_tuple()], 1.0, 0.0)
                             )
-                        else:
+                        elif dump_type == 'result':
+                            # ↑外界照応が適用されると非推奨になるかも
                             tok.entity_links[key].append(
                                 (-1, 1.0, 0.0)
                             )
