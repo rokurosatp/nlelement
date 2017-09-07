@@ -452,12 +452,35 @@ class DatabaseLoader:
             self.chunkid_localize_table[chunk_id] = (self.seeking_sid, cid)
             links.append(link_chunk_id)
         cursor.close()
+        del_list = []
         for chunk, link_chunk_id in zip(chunks, links):
+            if not chunk.tokens:
+                del_list.append(chunk)
             if link_chunk_id >= 0:
                 chunk.link_id = cid_localize_table[link_chunk_id]
                 chunk.link = chunks[chunk.link_id]
                 chunks[chunk.link_id].reverse_link_ids.append(chunk.cid)
                 chunks[chunk.link_id].reverse_links.append(chunk)
+        for chunk in del_list:
+            if len(chunks) > chunk.cid + 1:
+                chunks[chunk.cid + 1].reverse_link_ids.extend(chunk.reverse_link_ids)
+                chunks[chunk.cid + 1].reverse_links.extend(chunk.reverse_links)
+                for dtr in chunk.reverse_links:
+                    dtr.link = chunks[chunk.cid + 1]
+            else:
+                for dtr in chunk.reverse_links:
+                    dtr.link_id = -1
+                    dtr.link = None
+            for i in range(chunk.cid + 1, len(chunks)):
+                chunks[i].cid -= 1
+            for i in range(len(chunks)):
+                if chunk.link_id > chunk.cid:
+                    chunk.link_id -= 1
+                for j in range(len(chunks[i].reverse_link_ids)):
+                    if chunks[i].reverse_link_ids[j] > chunk.cid:
+                        chunks[i].reverse_link_ids[j] -= 1
+            chunks.remove(chunk)
+        del_list = None
         cid_localize_table = None
         #print(sentence.get_surface())
         return chunks
