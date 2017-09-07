@@ -166,11 +166,9 @@ def count_syncha_stat():
     stats = PredicateStatTable()
     process = subprocess.Popen(['./predicate/external/syncha-0.3.1.1/syncha', '-I', '2', '-O', '2', '-k'], stdin=subprocess.PIPE)
     db = database.DatabaseLoader(bccwj.get_corpus_path())
-    with open('./dat/log/stat_input.log', 'w') as f:
-        for doc in db.load_as_iter():
-            input_str = cabocha_extended.dump_doc(doc, from_label=True)
-            f.write(input_str)
-            process.stdin.write(input_str.encode('utf-8'))
+    for doc in db.load_as_iter():
+        input_str = cabocha_extended.dump_doc(doc, from_label=True)
+        process.stdin.write(input_str.encode('utf-8'))
     process.wait()
 
 def plot_pas_stat():
