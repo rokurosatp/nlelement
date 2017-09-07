@@ -160,8 +160,22 @@ def count_pas_stat():
     stats.save('dat/log/pas_stats.json')
     stats.show()
 
+def count_syncha_stat():
+    import subprocess
+    from nlelement import cabocha_extended
+    stats = PredicateStatTable()
+    process = subprocess.Popen(['./predicate/external/syncha-0.3.1.1/syncha', '-I', '2', '-k'], stdin=subprocess.PIPE)
+    db = database.DatabaseLoader(bccwj.get_corpus_path())
+    for doc in db.load_as_iter():
+        process.stdin.write(cabocha_extended.dump_doc(doc, from_label=True).encode('utf-8'))
+    process.wait()
 
 def plot_pas_stat():
     stats = PredicateStatTable()
     stats.load('dat/log/pas_stats.json')
+    stats.show()
+
+def plot_syncha_stat():
+    stats = PredicateStatTable()
+    stats.load('dat/log/syncha_stats.json')
     stats.show()
