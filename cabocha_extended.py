@@ -614,12 +614,12 @@ class CabochaDumper:
                             continue
                         refered_entities.append(nlelement.make_reference(value))                            
                     refered_entities.sort()
-        if dump_type in ['scored_output', 'result']:
+        if dump_type in ['scored_output', 'result', 'standard']:
             for tok in nlelement.tokens(document):
                 if hasattr(tok, "predicate_term"):
                     for key, values in tok.predicate_term.items():
                         for value in values:
-                            if dump_type == 'result' and value.label == 0.0:
+                            if dump_type in ['result', 'standard'] and value.label == 0.0:
                                 continue
                             ant_ref = value.ant_ref()
                             if ant_ref is None:
@@ -628,7 +628,7 @@ class CabochaDumper:
                 if hasattr(tok, "coreference"):
                     values = getattr(tok, "coreference")
                     for value in values:
-                            if dump_type == 'result' and value.label == 0.0:
+                            if dump_type in ['result', 'standard'] and value.label == 0.0:
                                 continue
                             ant_ref = value.ant_ref()
                             if ant_ref is None:
@@ -637,7 +637,7 @@ class CabochaDumper:
                 if hasattr(tok, "semrole"):
                     for key, values in tok.semrole.items():
                         for value in values:
-                            if dump_type == 'result' and value.label == 0.0:
+                            if dump_type in ['result', 'standard'] and value.label == 0.0:
                                 continue
                             ant_ref = value.ant_ref()
                             if ant_ref is None:
