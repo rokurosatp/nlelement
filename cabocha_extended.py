@@ -766,8 +766,6 @@ class CabochaDumper:
         fmt_text = ''
         for chunk in sentence.chunks:
             fmt_text += CabochaDumper.chunk_to_format(chunk)
-            if not chunk.tokens:
-                raise RuntimeError('empty chunk!')
             for token in chunk.tokens:
                 fmt_text += CabochaDumper.token_to_format(token, to_standard=to_standard)
         fmt_text += 'EOS\n'
