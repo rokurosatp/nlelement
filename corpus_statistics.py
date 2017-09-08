@@ -172,8 +172,8 @@ def count_syncha_stat():
         for doc in db.load_as_iter():
             input_str = cabocha_extended.dump_doc(doc, from_label=True)
             process.stdin.write(input_str.encode('utf-8'))
-            mem_size = resource.getrusage(resource.ru_idrss)
-            print('{}'.format(mem_size), file=sys.stderr)
+            mem_size = resource.getrusage(resource.RUSAGE_BOTH)
+            print('{}'.format(mem_size.ru_isrss), file=sys.stderr)
         process.wait()
 
 def plot_pas_stat():
