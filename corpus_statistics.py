@@ -172,7 +172,7 @@ def count_syncha_stat():
         for doc in db.load_as_iter():
             input_str = cabocha_extended.dump_doc(doc, from_label=True)
             process.stdin.write(input_str.encode('utf-8'))
-            mem_size = resource.getusage(resource.ru_idrss)
+            mem_size = resource.getrusage(resource.ru_idrss)
             print('{}'.format(mem_size), file=sys.stderr)
         process.wait()
 
