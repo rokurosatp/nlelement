@@ -4,6 +4,7 @@ import texttable
 import matplotlib
 import json
 from nlelement import nlelement, bccwj, database
+from resolutionprob import experiment
 
 
 class ArgStatElem:
@@ -153,8 +154,9 @@ class PredicateStatTable:
 def count_pas_stat():
     import re
     stats = PredicateStatTable()
-    db = database.DatabaseLoader(bccwj.get_corpus_path())
-    for doc in db.load_as_iter():
+    syncha_tester = experiment.TestRoutine.BccwjSyncha()
+    syncha_tester.doc_devider.load()
+    for doc in syncha_tester.doc_devider.train_docs(syncha_tester.loader):
         if re.match(r"PB.*", doc.name):
             stats.count_doc(doc)
     stats.save('dat/log/pas_stats.json')
@@ -162,13 +164,14 @@ def count_pas_stat():
 
 def count_syncha_stat():
     import subprocess
-    import resource
     import sys
     from nlelement import cabocha_extended
     stats = PredicateStatTable()
     process = subprocess.Popen(['./predicate/external/syncha-0.3.1.1/syncha', '-I', '2', '-O', '2', '-k'], stdin=subprocess.PIPE)
-    db = database.DatabaseLoader(bccwj.get_corpus_path())
-    for doc in db.load_as_iter():
+    #db = database.DatabaseLoader(bccwj.get_corpus_path())
+    syncha_tester = experiment.TestRoutine.BccwjSyncha()
+    syncha_tester.doc_devider.load()
+    for doc in syncha_tester.doc_devider.train_docs(syncha_tester.loader):
         input_str = cabocha_extended.dump_doc(doc, from_label=True)
         process.stdin.write(input_str.encode('utf-8'))
     process.stdin.close()
