@@ -228,9 +228,9 @@ class LoadError(Exception):
         """
         result_list = []
         positional_expr = ''
-        if len(self.sent_name) > 0:
+        if self.sent_name:
             positional_expr += self.sent_name + ':'
-        elif len(self.document_name) > 0:
+        elif self.document_name:
             positional_expr += self.document_name + ':'
         if self.sent_i > 0:
             positional_expr += str(self.sent_i) + '文目'
