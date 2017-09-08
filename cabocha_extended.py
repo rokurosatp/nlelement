@@ -240,16 +240,16 @@ class LoadError(Exception):
             positional_expr += str(self.token_i) + '番目の単語'
         result_list.append(positional_expr)
         positional_expr = ''
-        if len(self.file_name) > 0:
+        if self.file_name:
             positional_expr += self.file_name + ' at '
         if self.line_num > 0:
             positional_expr += 'line ' + str(self.line_num)
         result_list.append(positional_expr)
-        if len(self.sent_surf) > 0:
+        if self.sent_surf:
             result_list.append(self.sent_surf)
-        if len(self.input_line) > 0:
+        if self.input_line:
             result_list.append(self.input_line)
-        if len(self.problemed) > 0:
+        if self.problemed:
             result_list.append(self.problemed)
         if self.exception is not None:
             result_list.append(str(type(self.exception))+':'+str(self.exception))
