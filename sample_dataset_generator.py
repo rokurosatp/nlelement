@@ -37,5 +37,5 @@ def main():
         os.remove(str(db_path))
     sample_db = database.DatabaseLoader(str(db_path))
     sample_db.create_tables()
-    #sample_db.update_views()
+    sample_db.update_views()
     sample_db.save(docs)

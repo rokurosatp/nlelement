@@ -26,7 +26,7 @@ class DatabaseLoader:
         """ビューを作り直す
         """
         cursor = self.connector.cursor()
-        with open('UpdateView.sql') as file:
+        with open('../corpus-extraction/UpdateView.sql') as file:
             result = cursor.executescript(
                 '\n'.join(file.readlines())
             )
