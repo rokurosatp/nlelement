@@ -338,7 +338,7 @@ class CabochaLoader:
         for self.line_num, self.line in enumerate(map(lambda x: x.rstrip('\r\n'), lines)):
             if self.line == 'EOT':
                 self.__resolve_entity_id__(doc)
-
+                self.ids.sent.reset()
                 self.entity_ids = dict()
                 doc = nlelement.Document()
                 docs.append(doc)
@@ -431,6 +431,8 @@ class CabochaLoader:
                         if key in ['ga', 'o', 'ni', "eq"]:
                             for entity_tup in value:
                                 if entity_tup[0] in self.entity_ids:
+                                    if entity_tup[1] != 1.0:
+                                        continue
                                     if not hasattr(tok, "coreference_link"):
                                         tok.coreference_link = dict()
                                     if key not in tok.coreference_link:
@@ -444,6 +446,8 @@ class CabochaLoader:
                         else:
                             for entity_tup in value:
                                 if entity_tup in self.entity_ids:
+                                    if entity_tup[1] != 1.0:
+                                        continue
                                     if not hasattr(tok, "semrole"):
                                         tok.semrole = dict()
                                     if key not in tok.semrole:
