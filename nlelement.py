@@ -22,7 +22,7 @@ class TokenReference:
     def __bool__(self):
         return self.sid >= 0 or self.tid >= 0
     def __lt__(self, value):
-        return self.sid < value.sid or (self.sid == value.sid and self.sid < value.sid)
+        return self.sid < value.sid or (self.sid == value.sid and self.tid < value.tid)
     def __eq__(self, value):
         return self.sid == value.sid and self.tid == value.tid
     def __repr__(self):
