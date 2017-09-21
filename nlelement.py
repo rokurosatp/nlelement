@@ -120,6 +120,15 @@ class Document:
         elif isinstance(ref, int):
             return self.refer_sentence(ref)
         return None
+    def chunkref_from_tokenref(self, token_ref):
+        """単語の参照からその単語を含む文節の参照を取得する
+        """
+        sent = self.refer_sentence(token_ref.sid)
+        for chunk in sent.chunks:
+            if chunk.tokens:
+                if chunk.tokens[0].tid <= token_ref.tid and token_ref.tid <= chunk.tokens[-1].tid:
+                    return make_reference(chunk)
+        return None
     def refer_sentence(self, sid):
         try:
             sentence = next(filter(lambda x: x.sid == sid, self.sentences))
