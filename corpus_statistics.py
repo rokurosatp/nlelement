@@ -291,3 +291,8 @@ def plot_syncha_stat():
     stats = PredicateStatTable()
     stats.load('dat/log/syncha_stats.json')
     stats.show()
+
+def count_all_corpus_stat():
+    count_syncha_stat(testroutine=experiment.TestRoutine.BccwjSyncha())
+    count_coref_stat(testroutine=experiment.TestRoutine.BccwjCoreference())
+    count_pas_stat(testroutine=experiment.TestRoutine.BccwjPredicate())
