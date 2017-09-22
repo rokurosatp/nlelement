@@ -4,7 +4,7 @@ import texttable
 import matplotlib
 import json
 from nlelement import nlelement, bccwj, database
-from resolutionprob import experiment
+from experiment import experiment
 
 
 class ArgStatElem:
