@@ -657,31 +657,33 @@ class CabochaDumper:
                         ref = value.antecedent_ref
                         if not hasattr(tok, "entity_links"):
                                 tok.entity_links = dict()
-                        if key not in tok.entity_links:
-                            tok.entity_links[key] = []
+                        label_key = key if dump_type != "result" else "label_"+key
+                        if label_key not in tok.entity_links:
+                            tok.entity_links[label_key] = []
                         if ref is not None and ref.to_tuple() in entity_id_table:
-                            tok.entity_links[key].append(
+                            tok.entity_links[label_key].append(
                                 (entity_id_table[ref.to_tuple()], 1.0, 0.0)
                             )
                         elif dump_type == 'result':
                             # ↑外界照応が適用されると非推奨になるかも
-                            tok.entity_links[key].append(
+                            tok.entity_links[label_key].append(
                                 (-1, 1.0, 0.0)
                             )
                 if hasattr(tok, "semroles"):
                     for key, value in tok.semroles.items():
+                        label_key = key if dump_type != "result" else "label_"+key
                         ref = nlelement.make_reference(value)
                         if not hasattr(tok, "entity_links"):
                             tok.entity_links = dict()
-                        if key not in tok.entity_links:
-                            tok.entity_links[key] = []
+                        if label_key not in tok.entity_links:
+                            tok.entity_links[label_key] = []
                         if ref is not None and ref.to_tuple() in entity_id_table:
-                            tok.entity_links[key].append(
+                            tok.entity_links[label_key].append(
                                 (entity_id_table[ref.to_tuple()], 1.0, 0.0)
                             )
                         elif dump_type == 'result':
                             # ↑外界照応が適用されると非推奨になるかも
-                            tok.entity_links[key].append(
+                            tok.entity_links[label_key].append(
                                 (-1, 1.0, 0.0)
                             )
         if dump_type in ['scored_output', 'result', 'standard']:
