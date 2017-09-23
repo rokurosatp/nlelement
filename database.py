@@ -1,5 +1,6 @@
 import sqlite3
 import os
+import gc
 from application import myprogress
 from . import nlelement
 from . import loadercommon
@@ -360,6 +361,8 @@ class DatabaseLoader:
         for doc_id, name in cursor.fetchall():
             yield self.load_document(doc_id, name)
         cursor.close()
+        gc.collect()
+
     def load_documents(self):
         documents = []
         cursor = self.connector.cursor()

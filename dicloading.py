@@ -106,6 +106,7 @@ class IdDictionaryList:
             ('dat/dic/defs/case.def', self.case),
             ('dat/dic/defs/connparticle.def', self.connparticle),
             ('dat/dic/defs/conj.def', self.conj),
+            ('dat/dic/defs/case_id.def', self.case_id),
             ('dat/dic/defs/semroles.def', self.semrole),
         ]
         print('saving files')

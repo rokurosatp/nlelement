@@ -100,8 +100,7 @@ class Document:
                     else:
                         feature_tuple = coref.get_feature_tuple()
                         case = name
-                    pred_sent = self.refer_sentence(feature_tuple[2])
-                    chunk_ref = pred_sent.chunk_from_token(pred_sent.tokens[feature_tuple[3]])
+                    chunk_ref = self.chunkref_from_tokenref(TokenReference(feature_tuple[2], feature_tuple[3]))
                     result.append(
                         (feature_tuple[0], feature_tuple[1], chunk_ref.sid, chunk_ref.cid, case)
                     )
@@ -119,6 +118,15 @@ class Document:
                     return sentence.tokens[ref.tid]
         elif isinstance(ref, int):
             return self.refer_sentence(ref)
+        return None
+    def chunkref_from_tokenref(self, token_ref):
+        """単語の参照からその単語を含む文節の参照を取得する
+        """
+        sent = self.refer_sentence(token_ref.sid)
+        for chunk in sent.chunks:
+            if chunk.tokens:
+                if chunk.tokens[0].tid <= token_ref.tid and token_ref.tid <= chunk.tokens[-1].tid:
+                    return make_reference(chunk)
         return None
     def refer_sentence(self, sid):
         try:

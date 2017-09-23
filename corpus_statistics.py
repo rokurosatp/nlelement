@@ -3,8 +3,9 @@
 import texttable
 import matplotlib
 import json
+import re
 from nlelement import nlelement, bccwj, database
-from resolutionprob import experiment
+from experiment import experiment
 
 
 class ArgStatElem:
@@ -34,6 +35,74 @@ class ArgStatElem:
             self.o = int(dic["o"])
         if "ni" in dic:
             self.ni = int(dic["ni"])
+
+class CoreferenceStatTable:
+    def __init__(self):
+        self.in_head_noun = 0
+        self.not_noun_coref = 0
+        self.pronoun = 0
+        self.coreference = 0
+
+    def count(self, doc, sent, chunk, tok):
+        
+        if chunk.head_token() == tok:
+            self.in_head_noun += 1
+        if tok.part == "名詞":    
+            if re.match(r"(これ|それ|あれ|ここ|そこ|あそこ|彼|彼女|あいつ|こいつ|そいつ|)", tok.basic_surface):
+                self.pronoun += 1
+
+        if "coref" in tok.coreference_link:
+            self.coreference += 1
+            if tok.part != "名詞":
+                self.not_noun_coref += 1
+
+    def count_doc(self, doc):
+        for sent in doc.sentences:
+            for chunk in sent.chunks:
+                for tok in chunk.tokens:
+                    self.count(doc, sent, chunk, tok)
+
+    def from_dict(self, dic:dict):
+        if "in_head_noun" in dic:
+            self.in_head_noun = dic["in_head_noun"]
+        if "not_noun_coref" in dic:
+            self.not_noun_coref = dic["not_noun_coref"]
+        if "pronoun" in dic:
+            self.pronoun = dic["pronoun"]
+        if "coreference" in dic:
+            self.coreference = dic["coreference"]
+        
+    def to_dict(self):
+        return {
+            "pronoun": self.pronoun,
+            "not_noun_coref": self.not_noun_coref,
+            "in_head_noun": self.in_head_noun,
+            "coreference": self.coreference
+        }
+
+    def save(self, filename):
+        with open(filename, "w") as f:
+            json.dump(self.to_dict(), f)
+
+    def load(self, filename):
+        with open(filename) as f:
+            self.from_dict(json.load(f))
+
+    def __show_item__(self, name):
+        arg = getattr(self, name)
+        if isinstance(arg, int):
+            print(name, ":", arg)
+        else:
+            print(name, ":", arg.total())
+    def show(self):
+        for name in [
+            "pronoun",
+            "not_noun_coref",
+            "in_head_noun",
+            "coreference"
+        ]:
+            self.__show_item__(name)
+
 
 class PredicateStatTable:
     def __init__(self):
@@ -151,31 +220,67 @@ class PredicateStatTable:
     def plot(self, filename=None):
         pass
 
-def count_pas_stat():
+def count_pas_stat(category=None, testroutine=None, section='train'):
     import re
     stats = PredicateStatTable()
-    syncha_tester = experiment.TestRoutine.BccwjSyncha()
-    syncha_tester.doc_devider.load()
-    for doc in syncha_tester.doc_devider.train_docs(syncha_tester.loader):
-        if re.match(r"PB.*", doc.name):
+    
+    if testroutine is None:
+        tester = experiment.TestRoutine.BccwjSyncha()
+    else:
+        tester = testroutine  
+    tester.doc_devider.load()
+    if category:
+        for doc in tester.doc_devider.get_docs(section, tester.loader):
+            if re.match(category+r".*", doc.name):
+                stats.count_doc(doc)
+    else:
+        for doc in tester.doc_devider.get_docs(section, tester.loader):
             stats.count_doc(doc)
     stats.save('dat/log/pas_stats.json')
     stats.show()
 
-def count_syncha_stat():
+
+def count_coref_stat(category=None, testroutine=None, section='train'):
+    import re
+    stats = CoreferenceStatTable()
+    if testroutine is None:
+        tester = experiment.TestRoutine.BccwjSyncha()
+    else:
+        tester = testroutine    
+    tester.doc_devider.load()
+    if category:
+        for doc in tester.doc_devider.get_docs(section, tester.loader):
+            if re.match(category+r".*", doc.name):
+                stats.count_doc(doc)
+    else:
+        for doc in tester.doc_devider.get_docs(section, tester.loader):
+            stats.count_doc(doc)
+    stats.save('dat/log/coref_stats.json')
+    stats.show()
+
+def count_syncha_stat(category=None, testroutine=None, section='train'):
     import subprocess
     import sys
     from nlelement import cabocha_extended
     stats = PredicateStatTable()
     process = subprocess.Popen(['./predicate/external/syncha-0.3.1.1/syncha', '-I', '2', '-O', '2', '-k'], stdin=subprocess.PIPE)
     #db = database.DatabaseLoader(bccwj.get_corpus_path())
-    syncha_tester = experiment.TestRoutine.BccwjSyncha()
-    syncha_tester.doc_devider.load()
-    for doc in syncha_tester.doc_devider.train_docs(syncha_tester.loader):
+    
+    if testroutine is None:
+        tester = experiment.TestRoutine.BccwjSyncha()
+    else:
+        tester = testroutine  
+    tester.doc_devider.load()
+    for doc in tester.doc_devider.get_docs(section, tester.loader):
         input_str = cabocha_extended.dump_doc(doc, from_label=True)
         process.stdin.write(input_str.encode('utf-8'))
     process.stdin.close()
     process.wait()
+
+def plot_coref_stat():
+    stats = PredicateStatTable()
+    stats.load('dat/log/pas_stats.json')
+    stats.show()
 
 def plot_pas_stat():
     stats = PredicateStatTable()
@@ -186,3 +291,8 @@ def plot_syncha_stat():
     stats = PredicateStatTable()
     stats.load('dat/log/syncha_stats.json')
     stats.show()
+
+def count_all_corpus_stat():
+    count_syncha_stat(testroutine=experiment.TestRoutine.BccwjSyncha())
+    count_coref_stat(testroutine=experiment.TestRoutine.BccwjCoreference())
+    count_pas_stat(testroutine=experiment.TestRoutine.BccwjPredicate())
