@@ -778,6 +778,8 @@ class CabochaDumper:
     def chunk_to_format(chunk: nlelement.Chunk):
         """ChunkオブジェクトからCaboChaフォーマットを生成する
         """
+        if chunk.chunk_type:
+            setattr(chunk.head_token(), "chunk_type", chunk.chunk_type)
         fmt_text = ''
         fmt_text += '* ' + '{0} {1}D '.format(chunk.cid, chunk.link_id)
         if chunk.func_position == chunk.token_num:
@@ -837,6 +839,10 @@ class CabochaDumper:
                         result_items.append('{}={};{};{}'.format(key, *val))
         if token.pas_type:
             result_items.append('type={}'.format(token.pas_type))
+        if hasattr(token, "chunk_type"):
+            result_items.append('pth_type={}'.format(token.chunk_type))
+            
+
         return ','.join(result_items)
     @staticmethod
     def __annotation_to_standard_format__(token: nlelement.Token):
