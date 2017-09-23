@@ -525,7 +525,7 @@ def get_verbchunk_verb(chunk: Chunk):
     head = chunk.head_token()
     expr = ''
     nhead_posi = chunk.head_position + 1
-    nhead = chunk.tokens[nhead_posi] if nhead_posi + 1 < len(chunk) else None
+    nhead = chunk.tokens[nhead_posi] if nhead_posi + 1 < len(chunk.tokens) else None
     pre_head_posi = chunk.head_position - 1
     phead = chunk.tokens[pre_head_posi] if pre_head_posi >= 0 else None
     if head.part == "動詞":
