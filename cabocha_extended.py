@@ -749,6 +749,7 @@ class CabochaDumper:
     @staticmethod
     def postproccess_doc(document: nlelement.Document):
         for tok in nlelement.tokens(document):
+            delattr(tok, "entity_id")
             delattr(tok, "entity_links")
     @staticmethod
     def doc_to_format(document: nlelement.Document, dump_type='scored_output', with_header=False):
@@ -764,6 +765,7 @@ class CabochaDumper:
             else:
                 fmt_text += CabochaDumper.sent_to_format(sentence)
         fmt_text += 'EOT\n'
+        CabochaDumper.postproccess_doc(document)
         return fmt_text
     @staticmethod
     def sent_to_format(sentence: nlelement.Sentence, to_standard=False):
