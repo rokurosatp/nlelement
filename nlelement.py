@@ -495,6 +495,95 @@ class Token:
         members['conj_form:']=self.conj_form
         return repr(members)
 
+def get_verbchunk_verb(chunk: Chunk):
+    """フレームとのマッチング用に動詞の表現を統一する
+    辞書としてはIPA, UNIDICを想定
+    NOTE:アルゴリズムはSynchaのものを流用
+    TODO:ASAに完全対応しているかどうかは微妙なのでできたら統一する
+    * サ変動詞(ex.実行する) -> サ変名詞+する
+    * サ変副詞する(ex.迷惑する) -> サ変名詞+する
+    * 動詞 -> 基本形
+    * コピュラ
+    * 体言止め(サ変)
+    * 体言語幹のサ変動詞
+    * 連体詞
+    * 体言止め(数値,形容動詞)
+    * 生まれ
+    * ある（助動詞|連体詞）
+    * 体言止め(普通)
+    * なる、ない
+    * 副詞
+    """
+    head = chunk.head_token()
+    expr = ''
+    nhead_posi = chunk.head_position + 1
+    nhead = chunk.tokens[nhead_posi] if nhead_posi + 1 < len(chunk) else None
+    pre_head_posi = chunk.head_position - 1
+    phead = chunk.tokens[pre_head_posi] if pre_head_posi >= 0 else None
+    if head.part == "動詞":
+        if not re.match(r"(する|為る)", head.basic_surface):
+            if not phead:
+                expr = 'する'
+            else:
+                if re.match(r"(名詞-サ変.*|名詞-.*-サ変.*)", phead.pos):
+                    expr = phead.surface+"する"
+                elif re.match(r"(名詞-副詞可能.*|名詞-.*-サ変形状詞.*)", phead.pos):
+                    expr = phead.surface+"する"
+            return expr
+        else:
+            expr = head.basic_surface
+            return expr
+    if head.part == "名詞" and nhead and re.match(r"(だ|です)", nhead.basic_surface):
+        expr = head.surface + nhead.surface
+        return expr
+
+    if re.match(r"(名詞-サ変.*|名詞-.*-サ変.*)", head.pos):
+        if chunk.link_id == -1:
+            return head.surface + "する"
+        elif re.match(r"(記号-読点)", nhead.pos) and chunk.link.head_token.pas_type == "pred":
+            return head.surface + "する"
+        elif nhead and (re.match(r"(する|為る)", nhead.basic_surface)):
+            return head.surface + "する"
+    
+    if head.part == "連体詞":
+        if head.basic_surface == "大きな":
+            return "大きい"
+        if head.basic_surface == "小さな":
+            return "小さい"
+        if head.basic_surface == "同じ":
+            return "同じだ"
+    if re.match(r"(名詞-形容動詞語幹|名詞-.*-サ変形状詞可能)", head.pos):
+        return head.surface + "だ"
+
+    if head.basic_surface == "生まれ":
+        return "生まれる"
+    
+    if head.basic_surface == "ある" and re.match(r"(助動詞|連体詞)", head.part):
+        return "ある"
+
+    if re.match(r"(名詞-接尾-助数詞|名詞-普通名詞-助数詞可能)", head.pos):
+        return head.basic_surface+"だ"
+
+    if re.match(r"(名詞-一般|名詞-普通名詞-一般)", head.pos):
+        return head.basic_surface+"だ"
+
+    if re.match(r"(動詞-非自立|動詞-非自立可能)", head.pos) and head.basic_surface == "なる":
+        return "なる"
+
+    if head.part == "助動詞" and head.basic_surface == "ない":
+        return "ない"
+
+    if re.match(r"(副詞|形状詞)", head.pos) and nhead and nhead.basic_surface == "。":
+        return head.bf + "だ"
+
+    for rev_link in chunk.reverse_links:
+        for rev_tok in rev_link.tokens:
+            if re.match(r"(は|が|も|を|に|から|へ|と|より|まで|で)", rev_tok.basic_surface) and re.match(r"(助詞-(?!接続助詞))",rev_tok.pos):
+                if re.match(r"名詞.*", head.pos):
+                    return head.basic_surface+"だ"
+    
+    return ""
+
 class ReferenceConverter:
     """トークン、チャンクの参照をなるべく文字単位で正確に変換するためのクラス
     """
