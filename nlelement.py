@@ -184,10 +184,10 @@ class Sentence:
         * 下で呼ばなきゃいけないってすげえ非合理的
         """
         chunk_position = 0
-        for ｃid, chunk in enumerate(self.chunks):
+        for cid, chunk in enumerate(self.chunks):
             self.chunk_positions.append(chunk_position)
             chunk_position += len(chunk.get_surface())
-            self.__link_chunk__(ｃid, chunk)
+            self.__link_chunk__(cid, chunk)
             chunk.set_token_info()
         self.add_first_mentioned()
     def add_first_mentioned(self):
