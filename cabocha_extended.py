@@ -749,8 +749,10 @@ class CabochaDumper:
     @staticmethod
     def postproccess_doc(document: nlelement.Document):
         for tok in nlelement.tokens(document):
-            delattr(tok, "entity_id")
-            delattr(tok, "entity_links")
+            if hasattr(tok, "entity_id"):
+                delattr(tok, "entity_id")
+            if hasattr(tok, "entity_links"):
+                delattr(tok, "entity_links")
     @staticmethod
     def doc_to_format(document: nlelement.Document, dump_type='scored_output', with_header=False):
         """DocumentオブジェクトからCaboChaフォーマットを生成する
