@@ -185,11 +185,11 @@ class Sentence:
         """
         chunk_position = 0
         for cid, chunk in enumerate(self.chunks):
-            self.chunk_positions.append(chunk_position)
-            chunk_position += len(chunk.get_surface())
-            self.__link_chunk__(cid, chunk)
-            chunk.set_token_info()
-        self.add_first_mentioned()
+            self.chunk_positions.append(chunk_position) # 
+            chunk_position += len(chunk.get_surface())  # 始点の文字上の位置を設定
+            #self.__link_chunk__(cid, chunk)             # 係り受け元、係り受け先のオブジェクト参照を設定する NOTE:循環参照が起こる
+            chunk.set_token_info()                      # お呼び出し(databaseモジュールでも呼び出されるので問題なし)
+        self.add_first_mentioned()                      # first_mentionedの対か
     def add_first_mentioned(self):
         """first_mentionedの追加
         """
