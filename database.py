@@ -1,7 +1,7 @@
 import sqlite3
 import os
 import gc
-from application import myprogress
+from . import myprogress
 from . import nlelement
 from . import loadercommon
 

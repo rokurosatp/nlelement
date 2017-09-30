@@ -1,7 +1,7 @@
 import os
 import re
 import io
-from application import myprogress
+from . import myprogress
 from . import nlelement
 from . import argument
 from . import loadercommon
