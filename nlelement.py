@@ -149,7 +149,7 @@ class Document:
     def to_position(self, obj):
         """変換可能なobjectの文字位置への変換
         """
-        return get_position(self, obj):
+        return get_position(self, obj)
 
     def refer_chunk_from_char_position(self, sid, char_position):
         """文節番号から文節インスタンスへの参照を取得
