@@ -144,6 +144,8 @@ class Document:
     def sid_to_position(self, sid):
         """文番号から文字位置への変換
         """
+        if sid < 0 or sid >= len(self.sentences):
+            return -1
         return get_position(self, self.refer_sentence(sid))
 
     def to_position(self, obj):
@@ -731,10 +733,16 @@ def get_position(doc, obj):
     """docに所属する指定したオブジェクトあるいはオブジェクト参照の始点positionを取得
     """
     if isinstance(obj, (Token, TokenReference)):
-        return sum(map(lambda t: len(t.surface),filter(lambda t:t.sid < obj.sid or t.tid < obj.tid, tokens(doc))))
+        if obj.sid < 0 or obj.tid < 0 or obj.sid >= len(doc.sentences) or obj.tid >= len(doc.sentences[obj.sid].tokens):
+            return -1
+        return sum(map(lambda t: len(t.surface),filter(lambda t:t.sid < obj.sid or t.sid == obj.sid and t.tid < obj.tid, tokens(doc))))
     elif isinstance(obj, (Chunk, ChunkReference)):
-        return sum(map(lambda c: len(c.get_surface()), filter(lambda c:c.sid < obj.sid or c.cid < obj.cid, chunks(doc))))
+        if obj.sid < 0 or obj.cid < 0 or obj.sid >= len(doc.sentences)  or obj.cid >= len(doc.sentences[obj.sid].chunks):
+            return -1
+        return sum(map(lambda c: len(c.get_surface()), filter(lambda c:c.sid < obj.sid or c.sid == obj.sid and c.cid < obj.cid, chunks(doc))))
     elif isinstance(obj, Sentence):
+        if obj.sid < 0 or obj.sid >= len(doc.sentences):
+            return -1
         return sum(map(lambda s: len(s.get_surface()), filter(lambda s:s.sid < obj.sid, doc.sentences)))
     raise TypeError("cannot convert from {} object/reference".format(type(obj)))
 
@@ -742,6 +750,8 @@ def position_to_sentence(doc, position):
     """文字位置から対応する文を取得
     """
     lensum = 0
+    if position < 0:
+        return None
     for sent in doc.sentences:
         length = len(sent.get_surface())
         if lensum + length > position:
@@ -753,6 +763,8 @@ def position_to_chunk(doc, position):
     """文字位置から対応する文節を取得
     """
     lensum = 0
+    if position < 0:
+        return None
     for chk in chunks(doc):
         length = len(chk.get_surface())
         if lensum + length > position:
@@ -763,6 +775,8 @@ def position_to_chunk(doc, position):
 def position_to_token(doc, position):
     """文字位置から対応する形態素を取得
     """
+    if position < 0:
+        return None
     lensum = 0
     for tok in tokens(doc):
         if lensum + len(tok.surface) > position:
