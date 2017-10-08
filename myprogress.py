@@ -1,4 +1,10 @@
+import os
 import progressbar
+try:
+    from mpprogress import mpprogress
+    mpprogress_imported = True
+except ImportError:
+    mpprogress_imported = False
 
 Progress_Mode = 'console'
 
@@ -21,5 +27,7 @@ class ConsoleProgress(MyProgressBase):
 def make_progress(min_value=0, max_value=None):
     if Progress_Mode == 'console':
         return ConsoleProgress(min_value=min_value, max_value=max_value)
+    elif mpprogress_imported and Progress_Mode == 'multiprocess' and os.getenv("PROGRESS_NAME"):
+        return mpprogress.MultiprocessedProgress(os.getenv("PROGRESS_NAME"), min_value=min_value, max_value=max_value)
     else:
         return MyProgressBase(min_value=min_value, max_value=max_value)
