@@ -730,9 +730,9 @@ class ReferenceConverter:
 def get_position(doc, obj):
     """docに所属する指定したオブジェクトあるいはオブジェクト参照の始点positionを取得
     """
-    if isinstance(obj, Token, TokenReference):
+    if isinstance(obj, (Token, TokenReference)):
         return sum(map(lambda t: len(t.surface),filter(lambda t:t.sid < obj.sid or t.tid < obj.tid, tokens(doc))))
-    elif isinstance(obj, Chunk, ChunkReference):
+    elif isinstance(obj, (Chunk, ChunkReference)):
         return sum(map(lambda c: len(c.get_surface()), filter(lambda c:c.sid < obj.sid or c.cid < obj.cid, chunks(doc))))
     elif isinstance(obj, Sentence):
         return sum(map(lambda s: len(s.get_surface()), filter(lambda s:s.sid < obj.sid, doc.sentences)))
