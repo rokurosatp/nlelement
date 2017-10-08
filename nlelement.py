@@ -141,6 +141,16 @@ class Document:
             if cid >= 0 and cid < len(self.sentences[sid].chunks):
                 return self.sentences[sid].chunks[cid]
         return None
+    def sid_to_position(self, sid):
+        """文番号から文字位置への変換
+        """
+        return get_position(self, self.refer_sentence(sid))
+
+    def to_position(self, obj):
+        """変換可能なobjectの文字位置への変換
+        """
+        return get_position(self, obj):
+
     def refer_chunk_from_char_position(self, sid, char_position):
         """文節番号から文節インスタンスへの参照を取得
         """
@@ -716,6 +726,32 @@ class ReferenceConverter:
                 dest_sid, dest_tid = self.__convert_tid__(ref.sid, ref.tid, conv_type)
                 return TokenReference(dest_sid, dest_tid)
         return None
+
+def get_position(doc, obj):
+    """docに所属する指定したオブジェクトあるいはオブジェクト参照の始点positionを取得
+    """
+    if isinstance(obj, Token, TokenReference):
+        return sum(
+            map(
+                lambda t: len(t.surface),
+                filter(lambda t:t.sid < obj.sid or t.tid < obj.tid, tokens(doc))
+            )
+        )
+    elif isinstance(obj, Chunk, ChunkReference):
+        return sum(
+            map(
+                lambda c: len(c.get_surface()),
+                filter(lambda c:c.sid < obj.sid or c.cid < obj.cid, chunks(doc))
+            )
+        )
+    elif isinstance(obj, Sentence):
+        return sum(
+            map(
+                lambda s: len(s.get_surface()),
+                filter(lambda s:s.sid < obj.sid, doc.sentences)
+            )
+        )
+    raise TypeError("cannot convert from {} object/reference".format(type(obj)))
 
 def position_to_sentence(doc, position):
     """文字位置から対応する文を取得
