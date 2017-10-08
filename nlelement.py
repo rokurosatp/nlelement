@@ -717,6 +717,38 @@ class ReferenceConverter:
                 return TokenReference(dest_sid, dest_tid)
         return None
 
+def position_to_sentence(doc, position):
+    """文字位置から対応する文を取得
+    """
+    lensum = 0
+    for sent in doc.sentences:
+        length = len(sent.get_surface())
+        if lensum + length > position:
+            return sent
+        lensum += length
+    return None
+
+def position_to_chunk(doc, position):
+    """文字位置から対応する文節を取得
+    """
+    lensum = 0
+    for chk in chunks(doc):
+        length = len(chk.get_surface())
+        if lensum + length > position:
+            return chk
+        lensum += length
+    return None
+
+def position_to_token(doc, position):
+    """文字位置から対応する形態素を取得
+    """
+    lensum = 0
+    for tok in tokens(doc):
+        if lensum + len(tok.surface) > position:
+            return tok
+        lensum += len(tok.surface)
+    return None
+
 class FlatNLElementIterator:
     def __init__(self, document):
         self.sentence_iter = iter(document.sentences)
