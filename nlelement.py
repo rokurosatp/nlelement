@@ -8,6 +8,8 @@ class ChunkReference:
     def __bool__(self):
         return self.sid >= 0 or self.cid >= 0
     def __eq__(self, value):
+        if value is None:
+            return False
         return self.sid == value.sid and self.cid == value.cid
     def __lt__(self, value):
         return self.sid < value.sid or (self.sid == value.sid and self.cid < value.cid)
@@ -24,6 +26,8 @@ class TokenReference:
     def __lt__(self, value):
         return self.sid < value.sid or (self.sid == value.sid and self.tid < value.tid)
     def __eq__(self, value):
+        if value is None:
+            return False
         return self.sid == value.sid and self.tid == value.tid
     def __repr__(self):
         return '<Tk:{0},{1}>'.format(self.sid, self.tid)
