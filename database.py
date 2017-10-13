@@ -613,7 +613,7 @@ class DatabaseLoader:
                 token.sahen = (token.attr1 == 'サ変')
                 token.normalnoun = (token.attr1 == '一般')
                 token.adjectivenoun = (token.attr1 == '副詞可能')
-            attr_cursor.execute("SELECT NAME, VALUE FROM Token_Tags WHERE token_id = ?", (token_id,))
+            attr_cursor.execute("SELECT NAME, VALUE FROM Token_Tags WHERE token = ?", (token_id,))
             for name, value in attr_cursor.fetchall():
                 setattr(token, name, value)
             if chunk_id not in self.chunkid_contains_list:
