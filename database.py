@@ -325,7 +325,7 @@ class DatabaseLoader:
             
             attr_names = list(filter(lambda d: d not in default_tok_attrs and isinstance(getattr(tok, d), (str, float, int, bool)), dir(tok)))
             if attr_names:
-                cursor.execute("SELECT ID FROM TOKENS  last_insert_rowid()")
+                cursor.execute("SELECT ID FROM TOKENS WHERE row_id in (SELECT last_insert_rowid())")
                 token_id = cursor.fetchone()[0]
                 for name in attr_names:
                     value = getattr(tok, name)
