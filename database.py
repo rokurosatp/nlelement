@@ -312,13 +312,26 @@ class DatabaseLoader:
                         doc_id, sent_id, chunk_id, tok.tid, tok.surface, tok.basic_surface, tok.read, tok.part, 
                         tok.attr1, tok.attr2, tok.conj_type, tok.conj_form, tok.named_entity, tok.pas_type
                     )
-        cursor.executemany("""
-            INSERT INTO TOKENS(
-                DOCUMENT_ID, SENTENCE_ID, CHUNK_ID, TID, SURFACE, BASE, READ, PART, ATTR1, ATTR2, CONJ_TYPE, CONJ_FORM, NAMED_ENTITY, PAS_TYPE
-            ) VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-            )
-            """, MyGenerator(chunk, doc_id, sent_id, chunk_id))
+        default_tok_attrs = dir(nlelement.Token())
+        for tok in chunk.tokens:
+            cursor.execute("""
+                INSERT INTO TOKENS(
+                    DOCUMENT_ID, SENTENCE_ID, CHUNK_ID, TID, SURFACE, BASE, READ, PART, ATTR1, ATTR2, CONJ_TYPE, CONJ_FORM, NAMED_ENTITY, PAS_TYPE
+                ) VALUES (
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                )
+                """, (doc_id, sent_id, chunk_id, tok.tid, tok.surface, tok.basic_surface, tok.read, tok.part, 
+                        tok.attr1, tok.attr2, tok.conj_type, tok.conj_form, tok.named_entity, tok.pas_type))
+            
+            attr_names = list(filter(lambda d: d not in default_tok_attrs and isinstance(getattr(tok, d), (str, float, int, bool))))
+            if attr_names:
+                cursor.execute("SELECT ID FROM TOKENS  last_insert_rowid()")
+                token_id = cursor.fetchone()[0]
+                for name in attr_names:
+                    value = getattr(tok, name)
+                    cursor.execute("INSERT INTO Token_Tags(token, name, value) VALUES (?, ?, ?)", (token_id, name, value))
+
+        
     def load(self):
         result = self.load_documents()
         return result
@@ -579,6 +592,7 @@ class DatabaseLoader:
         cursor.close()
     def load_tokens(self, sentence_id, sentence):
         cursor = self.connector.cursor()
+        attr_cursor = self.connector.cursor()
         tokens = []
         cursor.execute("SELECT * FROM TOKENS WHERE SENTENCE_ID = ? ORDER BY TID", (sentence_id,))
         for token_id, document_id, sentence_id, chunk_id, tid, surface, base, read, part, attr1, attr2, conj_type, conj_form, named_entity, pas_type in cursor.fetchall():
@@ -599,11 +613,15 @@ class DatabaseLoader:
                 token.sahen = (token.attr1 == 'サ変')
                 token.normalnoun = (token.attr1 == '一般')
                 token.adjectivenoun = (token.attr1 == '副詞可能')
+            attr_cursor.execute("SELECT NAME, VALUE FROM Token_Tag WHERE token_id = ?", (token_id,))
+            for name, value in attr_cursor.fetchall():
+                setattr(token, name, value)
             if chunk_id not in self.chunkid_contains_list:
                 self.chunkid_contains_list[chunk_id] = list()
             self.chunkid_contains_list[chunk_id].append(tid)
             #self.tokenid_localize_table[token_id] = (self.seeking_sid, tid)
             tokens.append(token)
+        attr_cursor.close()
         cursor.close()
         return tokens
     def __token_post_process__(self, chunk):
