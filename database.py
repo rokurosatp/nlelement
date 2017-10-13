@@ -323,7 +323,7 @@ class DatabaseLoader:
                 """, (doc_id, sent_id, chunk_id, tok.tid, tok.surface, tok.basic_surface, tok.read, tok.part, 
                         tok.attr1, tok.attr2, tok.conj_type, tok.conj_form, tok.named_entity, tok.pas_type))
             
-            attr_names = list(filter(lambda d: d not in default_tok_attrs and isinstance(getattr(tok, d), (str, float, int, bool))))
+            attr_names = list(filter(lambda d: d not in default_tok_attrs and isinstance(getattr(tok, d), (str, float, int, bool)), dir(tok)))
             if attr_names:
                 cursor.execute("SELECT ID FROM TOKENS  last_insert_rowid()")
                 token_id = cursor.fetchone()[0]
