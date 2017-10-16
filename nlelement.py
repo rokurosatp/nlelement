@@ -460,6 +460,7 @@ class Token:
     """
     def __init__(self):
         self.tid = 0
+        self.sid = 0
         self.surface = ''
         self.read = ''
         self.basic_surface = ''
