@@ -247,9 +247,9 @@ class DatabaseLoader:
             doc_id = document_id
         for token in nlelement.tokens(document):
             if hasattr(token, 'semroles'):
-                for semrole, semtok in token.semroles.items():
+                for semrole, semtok_ref in token.semroles.items():
                     pred_id = self.__refer_token_id__(cursor, doc_id, nlelement.make_reference(token))
-                    semtok_id = self.__refer_token_id__(cursor, doc_id, nlelement.make_reference(semtok))
+                    semtok_id = self.__refer_token_id__(cursor, doc_id, semtok_ref)
                     if pred_id and pred_id >= 0:
                         cursor.execute('INSERT INTO SemanticRole(PREDICATE, SEMROLE, ANTECEDENT) VALUES (?, ?, ?);', (pred_id, semrole, semtok_id))
                     else:
