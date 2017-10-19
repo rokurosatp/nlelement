@@ -530,7 +530,7 @@ class DatabaseLoader:
                     else:
                         if not hasattr(pred, 'semroles'):
                             setattr(pred, 'semroles', dict())
-                        pred.semroles[semrole] = document.refer(ant_ref)
+                        pred.semroles[semrole] = ant_ref
     def load_coreference_links(self, document: nlelement.Document, doc_id):
         cursor = self.connector.cursor()
         cursor.execute("""
