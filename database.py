@@ -78,6 +78,50 @@ class DatabaseLoader:
         )
         self.connector.commit()
         cursor.close()
+    def clear(self):
+        """初期化のために既存のテーブルの内容を消去
+        """
+        cursor = self.connector.cursor()
+        result = cursor.executescript(
+            """
+            DELETE FROM Documents;
+            DELETE FROM Sentences:
+            DELETE FROM Chunks;
+            DELETE FROM Chunk_Tags;
+            DELETE FROM Tokens;
+            DELETE FROM Pas_Annotated;
+            DELETE FROM Pth_Annotated;
+            DELETE FROM Pth_Annotated_Sent;
+            DELETE FROM Token_Tags;
+            DELETE FROM Coreference;
+            DELETE FROM PredicateTerm;
+            DELETE FROM SemanticRole;
+            """
+        )
+        self.connector.commit()
+        cursor.close()
+    def save_in_additional(self, documents):
+        """nlelementオブジェクトを追加保存する
+        """
+        if isinstance(documents, list):
+            if documents:
+                if isinstance(documents[0], nlelement.Document):
+                    file_path = os.path.expanduser('~/Dropbox/Logs/db_coref.log')
+                    self.file = open(file_path, 'a')
+                    cursor = self.connector.cursor()
+                    self.add_documents(cursor, documents)
+                    cursor.close()
+                    self.file.close()
+                else:
+                    raise TypeError(
+                        "Type of documents needs list<Document> not list<{0}>".format(
+                            type(documents[0]).__name__
+                        ))
+        else:
+            raise TypeError("Type of documents needs list<Document> not {0}".format(
+                type(documents).__name__
+            ))
+        
     def save(self, documents):
         """nlelementオブジェクトをダンプする
         """
@@ -640,6 +684,27 @@ class DatabaseLoader:
             elif token.surface == '」':
                 chunk.end_paren = True
                 chunk.emphasis = True
+
+class DatabaseWriter:
+    def __init__(self, db_filename, append=False):
+        self.loader = DatabaseLoader(db_filename)
+        cursor = self.loader.connector.cursor()
+        cursor.execute("SELECT count(*) from SQLITE_MASTER WHERE TYPE='table'")
+        if cursor.fetchone()[0] == 0:
+            loader.create_tables()
+            loader.update_views()
+        cursor.close()
+        if not append:
+            self.loader.clear()
+    def __enter__(self):
+        return self
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.loader.connector.commit()
+        self.loader.__exit__(exc_type, exc_value, traceback)
+
+    def add_documents(self, documents):
+        self.loader.save_in_additional(documents)
+
 
 def load(dbname):
     with DatabaseLoader(dbname) as loader:
