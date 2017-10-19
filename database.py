@@ -85,7 +85,7 @@ class DatabaseLoader:
         result = cursor.executescript(
             """
             DELETE FROM Documents;
-            DELETE FROM Sentences:
+            DELETE FROM Sentences;
             DELETE FROM Chunks;
             DELETE FROM Chunk_Tags;
             DELETE FROM Tokens;
