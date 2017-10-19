@@ -109,7 +109,7 @@ class DatabaseLoader:
                     file_path = os.path.expanduser('~/Dropbox/Logs/db_coref.log')
                     self.file = open(file_path, 'a')
                     cursor = self.connector.cursor()
-                    self.add_documents(cursor, documents)
+                    self.add_documents(cursor, documents, show_progress=False)
                     cursor.close()
                     self.file.close()
                 else:
@@ -167,11 +167,13 @@ class DatabaseLoader:
                         (sentence_id,)
                     )
 
-    def add_documents(self, cursor: sqlite3.Cursor, documents):
+    def add_documents(self, cursor: sqlite3.Cursor, documents, show_progress=True):
         did_globaldid_map = dict()
         subcursor = self.connector.cursor()
+        
         length = len(documents)
-        progress = myprogress.make_progress(max_value=length)
+        if show_progress:
+            progress = myprogress.make_progress(max_value=length)
         for i, doc in enumerate(documents):
             cursor.execute(
                 "INSERT INTO DOCUMENTS(NAME) VALUES (?)", (doc.name,)
@@ -179,21 +181,30 @@ class DatabaseLoader:
             cursor.execute("SELECT ID FROM DOCUMENTS WHERE ROWID IN (SELECT last_insert_rowid())")
             did_globaldid_map[i] = cursor.fetchone()[0]
             #self.add_annotation(subcursor, doc, did_globaldid_map[i])
-            progress.update(i+1)
-        progress.finish()
+            if show_progress:
+                progress.update(i+1)
+        if show_progress:
+            progress.finish()
         subcursor.close()
-        progress = myprogress.make_progress(max_value=length)
+        
+        if show_progress:
+            progress = myprogress.make_progress(max_value=length)
         for i, doc in enumerate(documents):
             self.add_sentences(cursor, doc, did_globaldid_map[i])
             self.add_coreference_links(cursor, doc, document_id=did_globaldid_map[i])
             self.add_semroles(cursor, doc, document_id=did_globaldid_map[i])
-            progress.update(i+1)
-        progress.finish()
-        progress = myprogress.make_progress(max_value=length)
+            if show_progress:
+                progress.update(i+1)
+        if show_progress:
+            progress.finish()
+        if show_progress:
+            progress = myprogress.make_progress(max_value=length)
         for i, doc in enumerate(documents):
             self.add_annotation(cursor, doc, did_globaldid_map[i])
-            progress.update(i+1)
-        progress.finish()
+            if show_progress:
+                progress.update(i+1)
+        if show_progress:
+            progress.finish()
         did_globaldid_map = None
     def add_sentences(self, cursor: sqlite3.Cursor, document: nlelement.Document, doc_id):
         sid_globalsid_map = dict()
