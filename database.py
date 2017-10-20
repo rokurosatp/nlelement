@@ -9,7 +9,7 @@ from . import loadercommon
 def __get_sqlpath__(filename):
     """このライブラリが保持しているsqlファイルのパスを取得
     """
-    root = os.path.abspath(__file__)
+    root = os.path.split(os.path.abspath(__file__))[0]
     return os.path.join(root, "sqlcode", filename)
 
 def __get_sqlcode__(filename):
