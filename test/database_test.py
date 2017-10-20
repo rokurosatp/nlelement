@@ -15,6 +15,7 @@ else:
 sys.path.append(str(root_path.parent))
 # ここから、テストするモジュールを取り込む
 from nlelement import database
+from nlelement.test import testsamplemaker
 
 class DatabaseTest(unittest.TestCase):
     def test_external_sql_syntax(self):
@@ -37,5 +38,12 @@ class DatabaseTest(unittest.TestCase):
         connector.commit()
         connector.close()
         
+
+class DatabaseWriterTest(unittest.TestCase):
+    def test_normal_document(self):
+        samples = testsamplemaker.NlElementSampleMaker()
+        saver = database.DatabaseWriter(":memory:")
+        saver.add_documents([samples.sample1()])
+
 if __name__ == "__main__":
     unittest.main()
