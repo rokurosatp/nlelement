@@ -1,8 +1,15 @@
+import os
+import sys
 import unittest
-import database
 import sqlite3
+# ライブラリがルートにある構成の問題で、相対インポートが機能しなくなるのを防ぐための処理
+mod_path = os.path.split(os.path.abspath(sys.argv[0]))[0]
+sys.path.remove("")
+sys.path.append(os.path.join(mod_path, ".."))
+# ここから、テストするモジュールを取り込む
+from nlelement import database
 
-class DatabaseTest:
+class DatabaseTest(unittest.TestCase):
     def test_external_sql_syntax(self):
         connector = sqlite3.connect(":memory:")
         connector.executescript(
@@ -22,3 +29,6 @@ class DatabaseTest:
         )
         connector.commit()
         connector.close()
+        
+if __name__ == "__main__":
+    unittest.main()
