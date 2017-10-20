@@ -1,9 +1,21 @@
 import sqlite3
 import os
+import sys
 import gc
 from . import myprogress
 from . import nlelement
 from . import loadercommon
+
+def __get_sqlpath__(filename):
+    """このライブラリが保持しているsqlファイルのパスを取得
+    """
+    root = os.path.abspath(__file__)
+    return os.path.join(root, "sqlcode", filename)
+
+def __get_sqlcode__(filename):
+    with open(__get_sqlpath__(filename), 'r') as fp:
+        result = '\n'.join(fp.readlines())
+    return result
 
 class DatabaseLoader:
     def __init__(self, filename):
@@ -27,10 +39,9 @@ class DatabaseLoader:
         """ビューを作り直す
         """
         cursor = self.connector.cursor()
-        with open('../corpus-extraction/UpdateView.sql') as file:
-            result = cursor.executescript(
-                '\n'.join(file.readlines())
-            )
+        result = cursor.executescript(
+            __get_sqlcode__('UpdateView.sql')
+        )
         self.connector.commit()
         cursor.close()
     def create_tables(self):
@@ -38,43 +49,10 @@ class DatabaseLoader:
         """
         cursor = self.connector.cursor()
         result = cursor.executescript(
-            """
-            CREATE TABLE Documents(ID INTEGER PRIMARY KEY, NAME TEXT UNIQUE);
-            CREATE TABLE Sentences(
-                ID INTEGER PRIMARY KEY, DOCUMENT_ID INTEGER, SID INTEGER
-            );
-            CREATE TABLE Chunks(
-                ID INTEGER PRIMARY KEY, DOCUMENT_ID INTEGER, SENTENCE_ID INTEGER,
-                CID INTEGER, LINK INTEGER, HEAD INTEGER, FUNC INTEGER
-            );
-            CREATE TABLE Chunk_Tags(CHUNK INTEGER, NAME TEXT, VALUE TEXT);
-            CREATE TABLE Tokens(
-                ID INTEGER PRIMARY KEY, DOCUMENT_ID INTEGER, SENTENCE_ID INTEGER, CHUNK_ID INTEGER,
-                TID INTEGER, SURFACE TEXT, BASE TEXT, READ TEXT, PART TEXT, ATTR1 TEXT, ATTR2 TEXT,
-                CONJ_TYPE TEXT, CONJ_FORM TEXT, NAMED_ENTITY TEXT, PAS_TYPE TEXT
-            );
-            CREATE TABLE Pas_Annotated(ID INTEGER PRIMARY_KEY, NAME TEXT UNIQUE);
-            CREATE TABLE Pth_Annotated(ID INTEGER PRIMARY_KEY, NAME TEXT UNIQUE);
-            CREATE TABLE Pth_Annotated_Sent(ID INTEGER PRIMARY_KEY);
-
-            CREATE TABLE Token_Tags(Token INTEGER, NAME TEXT, VALUE TEXT);
-            CREATE TABLE Coreference(ANAPHORA INTEGER UNIQUE, LINKTYPE TEXT, ANTECEDENT INTEGER);
-            CREATE TABLE PredicateTerm(PREDICATE INTEGER, CASEPT TEXT, LINKTYPE TEXT, ANTECEDENT INTEGER);
-            CREATE TABLE SemanticRole(PREDICATE INTEGER, SEMROLE TEXT, ANTECEDENT INTEGER);
-
-            CREATE INDEX Sentence_Idx ON Sentences(DOCUMENT_ID);
-            CREATE INDEX Chunk_Idx ON Chunks(SENTENCE_ID);
-            CREATE INDEX Chunk_Doc_Idx ON Chunks(DOCUMENT_ID);
-            CREATE INDEX Token_Idx ON Tokens(CHUNK_ID);
-            CREATE INDEX Token_Sent_Idx ON Tokens(SENTENCE_ID);
-            CREATE INDEX Token_Doc_Idx ON Tokens(SENTENCE_ID);
-            CREATE INDEX Chunk_Tag_Idx ON Chunk_Tags(CHUNK);
-            CREATE INDEX Token_Tag_Idx ON Token_Tags(TOKEN);
-            CREATE INDEX Coreference_Idx ON Coreference(ANAPHORA);
-            CREATE INDEX Predicate_Idx ON PredicateTerm(Predicate);
-            CREATE INDEX Semrole_Idx ON Semanticrole(Predicate);
-            CREATE INDEX DOCNAME_IDX ON Documents(Name);
-            """
+            __get_sqlcode__("Tables.sql")
+        )
+        result = cursor.executescript(
+            __get_sqlcode__("Indices.sql")
         )
         self.connector.commit()
         cursor.close()
@@ -83,20 +61,7 @@ class DatabaseLoader:
         """
         cursor = self.connector.cursor()
         result = cursor.executescript(
-            """
-            DELETE FROM Documents;
-            DELETE FROM Sentences;
-            DELETE FROM Chunks;
-            DELETE FROM Chunk_Tags;
-            DELETE FROM Tokens;
-            DELETE FROM Pas_Annotated;
-            DELETE FROM Pth_Annotated;
-            DELETE FROM Pth_Annotated_Sent;
-            DELETE FROM Token_Tags;
-            DELETE FROM Coreference;
-            DELETE FROM PredicateTerm;
-            DELETE FROM SemanticRole;
-            """
+            __get_sqlcode__("ClearTables.sql")
         )
         self.connector.commit()
         cursor.close()
