@@ -667,10 +667,10 @@ class DatabaseWriter:
         cursor = self.loader.connector.cursor()
         cursor.execute("SELECT count(*) from SQLITE_MASTER WHERE TYPE='table'")
         if cursor.fetchone()[0] == 0:
-            loader.create_tables()
+            self.loader.create_tables()
         elif not append:
             self.loader.clear()
-        loader.update_views()
+        self.loader.update_views()
         cursor.close()
         
     def __enter__(self):
