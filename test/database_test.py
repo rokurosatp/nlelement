@@ -3,6 +3,7 @@ import sys
 import unittest
 import sqlite3
 # ライブラリがルートにある構成の問題で、相対インポートが機能しなくなるのを防ぐための処理
+"""
 mod_path = pathlib.Path(__file__).parent
 root_path = mod_path.parent
 if "" in sys.path:
@@ -13,9 +14,10 @@ elif str(root_path) in sys.path:
 else:
     raise RuntimeError(str(sys.path+[str(root_path)]))
 sys.path.append(str(root_path.parent))
+"""
 # ここから、テストするモジュールを取り込む
-from nlelement import database
-from nlelement.test import testsamplemaker
+from .. import database
+from . import testsamplemaker
 
 class DatabaseTest(unittest.TestCase):
     def test_external_sql_syntax(self):
