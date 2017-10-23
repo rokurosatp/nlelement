@@ -24,6 +24,11 @@ class ConsoleProgress(MyProgressBase):
     def finish(self):
         self.progress.finish()
 
+def get_recommended_mode():
+    if "PROGRESS_NAME" in os.environ:
+        return 'multiprocess'
+    return 'console'
+
 def make_progress(min_value=0, max_value=None):
     if Progress_Mode == 'console':
         return ConsoleProgress(min_value=min_value, max_value=max_value)
