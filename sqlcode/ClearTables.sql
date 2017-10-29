@@ -1,0 +1,12 @@
+DELETE FROM Documents;
+DELETE FROM Sentences;
+DELETE FROM Chunks;
+DELETE FROM Chunk_Tags;
+DELETE FROM Tokens;
+DELETE FROM Pas_Annotated;
+DELETE FROM Pth_Annotated;
+DELETE FROM Pth_Annotated_Sent;
+DELETE FROM Token_Tags;
+DELETE FROM Coreference;
+DELETE FROM PredicateTerm;
+DELETE FROM SemanticRole;

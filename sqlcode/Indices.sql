@@ -1,0 +1,12 @@
+CREATE INDEX Sentence_Idx ON Sentences(DOCUMENT_ID);
+CREATE INDEX Chunk_Idx ON Chunks(SENTENCE_ID);
+CREATE INDEX Chunk_Doc_Idx ON Chunks(DOCUMENT_ID);
+CREATE INDEX Token_Idx ON Tokens(CHUNK_ID);
+CREATE INDEX Token_Sent_Idx ON Tokens(SENTENCE_ID);
+CREATE INDEX Token_Doc_Idx ON Tokens(SENTENCE_ID);
+CREATE INDEX Chunk_Tag_Idx ON Chunk_Tags(CHUNK);
+CREATE INDEX Token_Tag_Idx ON Token_Tags(TOKEN);
+CREATE INDEX Coreference_Idx ON Coreference(ANAPHORA);
+CREATE INDEX Predicate_Idx ON PredicateTerm(Predicate);
+CREATE INDEX Semrole_Idx ON Semanticrole(Predicate);
+CREATE INDEX DOCNAME_IDX ON Documents(Name);

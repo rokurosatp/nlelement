@@ -1,9 +1,21 @@
 import sqlite3
 import os
+import sys
 import gc
 from . import myprogress
 from . import nlelement
 from . import loadercommon
+
+def __get_sqlpath__(filename):
+    """このライブラリが保持しているsqlファイルのパスを取得
+    """
+    root = os.path.split(os.path.abspath(__file__))[0]
+    return os.path.join(root, "sqlcode", filename)
+
+def __get_sqlcode__(filename):
+    with open(__get_sqlpath__(filename), 'r') as fp:
+        result = '\n'.join(fp.readlines())
+    return result
 
 class DatabaseLoader:
     def __init__(self, filename):
@@ -27,10 +39,9 @@ class DatabaseLoader:
         """ビューを作り直す
         """
         cursor = self.connector.cursor()
-        with open('../corpus-extraction/UpdateView.sql') as file:
-            result = cursor.executescript(
-                '\n'.join(file.readlines())
-            )
+        result = cursor.executescript(
+            __get_sqlcode__('UpdateView.sql')
+        )
         self.connector.commit()
         cursor.close()
     def create_tables(self):
@@ -38,46 +49,44 @@ class DatabaseLoader:
         """
         cursor = self.connector.cursor()
         result = cursor.executescript(
-            """
-            CREATE TABLE Documents(ID INTEGER PRIMARY KEY, NAME TEXT UNIQUE);
-            CREATE TABLE Sentences(
-                ID INTEGER PRIMARY KEY, DOCUMENT_ID INTEGER, SID INTEGER
-            );
-            CREATE TABLE Chunks(
-                ID INTEGER PRIMARY KEY, DOCUMENT_ID INTEGER, SENTENCE_ID INTEGER,
-                CID INTEGER, LINK INTEGER, HEAD INTEGER, FUNC INTEGER
-            );
-            CREATE TABLE Chunk_Tags(CHUNK INTEGER, NAME TEXT, VALUE TEXT);
-            CREATE TABLE Tokens(
-                ID INTEGER PRIMARY KEY, DOCUMENT_ID INTEGER, SENTENCE_ID INTEGER, CHUNK_ID INTEGER,
-                TID INTEGER, SURFACE TEXT, BASE TEXT, READ TEXT, PART TEXT, ATTR1 TEXT, ATTR2 TEXT,
-                CONJ_TYPE TEXT, CONJ_FORM TEXT, NAMED_ENTITY TEXT, PAS_TYPE TEXT
-            );
-            CREATE TABLE Pas_Annotated(ID INTEGER PRIMARY_KEY, NAME TEXT UNIQUE);
-            CREATE TABLE Pth_Annotated(ID INTEGER PRIMARY_KEY, NAME TEXT UNIQUE);
-            CREATE TABLE Pth_Annotated_Sent(ID INTEGER PRIMARY_KEY);
-
-            CREATE TABLE Token_Tags(Token INTEGER, NAME TEXT, VALUE TEXT);
-            CREATE TABLE Coreference(ANAPHORA INTEGER UNIQUE, LINKTYPE TEXT, ANTECEDENT INTEGER);
-            CREATE TABLE PredicateTerm(PREDICATE INTEGER, CASEPT TEXT, LINKTYPE TEXT, ANTECEDENT INTEGER);
-            CREATE TABLE SemanticRole(PREDICATE INTEGER, SEMROLE TEXT, ANTECEDENT INTEGER);
-
-            CREATE INDEX Sentence_Idx ON Sentences(DOCUMENT_ID);
-            CREATE INDEX Chunk_Idx ON Chunks(SENTENCE_ID);
-            CREATE INDEX Chunk_Doc_Idx ON Chunks(DOCUMENT_ID);
-            CREATE INDEX Token_Idx ON Tokens(CHUNK_ID);
-            CREATE INDEX Token_Sent_Idx ON Tokens(SENTENCE_ID);
-            CREATE INDEX Token_Doc_Idx ON Tokens(SENTENCE_ID);
-            CREATE INDEX Chunk_Tag_Idx ON Chunk_Tags(CHUNK);
-            CREATE INDEX Token_Tag_Idx ON Token_Tags(TOKEN);
-            CREATE INDEX Coreference_Idx ON Coreference(ANAPHORA);
-            CREATE INDEX Predicate_Idx ON PredicateTerm(Predicate);
-            CREATE INDEX Semrole_Idx ON Semanticrole(Predicate);
-            CREATE INDEX DOCNAME_IDX ON Documents(Name);
-            """
+            __get_sqlcode__("Tables.sql")
+        )
+        result = cursor.executescript(
+            __get_sqlcode__("Indices.sql")
         )
         self.connector.commit()
         cursor.close()
+    def clear(self):
+        """初期化のために既存のテーブルの内容を消去
+        """
+        cursor = self.connector.cursor()
+        result = cursor.executescript(
+            __get_sqlcode__("ClearTables.sql")
+        )
+        self.connector.commit()
+        cursor.close()
+    def save_in_additional(self, documents):
+        """nlelementオブジェクトを追加保存する
+        """
+        if isinstance(documents, list):
+            if documents:
+                if isinstance(documents[0], nlelement.Document):
+                    file_path = os.path.expanduser('~/Dropbox/Logs/db_coref.log')
+                    self.file = open(file_path, 'a')
+                    cursor = self.connector.cursor()
+                    self.add_documents(cursor, documents, show_progress=False)
+                    cursor.close()
+                    self.file.close()
+                else:
+                    raise TypeError(
+                        "Type of documents needs list<Document> not list<{0}>".format(
+                            type(documents[0]).__name__
+                        ))
+        else:
+            raise TypeError("Type of documents needs list<Document> not {0}".format(
+                type(documents).__name__
+            ))
+        
     def save(self, documents):
         """nlelementオブジェクトをダンプする
         """
@@ -123,11 +132,13 @@ class DatabaseLoader:
                         (sentence_id,)
                     )
 
-    def add_documents(self, cursor: sqlite3.Cursor, documents):
+    def add_documents(self, cursor: sqlite3.Cursor, documents, show_progress=True):
         did_globaldid_map = dict()
         subcursor = self.connector.cursor()
+        
         length = len(documents)
-        progress = myprogress.make_progress(max_value=length)
+        if show_progress:
+            progress = myprogress.make_progress(max_value=length)
         for i, doc in enumerate(documents):
             cursor.execute(
                 "INSERT INTO DOCUMENTS(NAME) VALUES (?)", (doc.name,)
@@ -135,21 +146,30 @@ class DatabaseLoader:
             cursor.execute("SELECT ID FROM DOCUMENTS WHERE ROWID IN (SELECT last_insert_rowid())")
             did_globaldid_map[i] = cursor.fetchone()[0]
             #self.add_annotation(subcursor, doc, did_globaldid_map[i])
-            progress.update(i+1)
-        progress.finish()
+            if show_progress:
+                progress.update(i+1)
+        if show_progress:
+            progress.finish()
         subcursor.close()
-        progress = myprogress.make_progress(max_value=length)
+        
+        if show_progress:
+            progress = myprogress.make_progress(max_value=length)
         for i, doc in enumerate(documents):
             self.add_sentences(cursor, doc, did_globaldid_map[i])
             self.add_coreference_links(cursor, doc, document_id=did_globaldid_map[i])
             self.add_semroles(cursor, doc, document_id=did_globaldid_map[i])
-            progress.update(i+1)
-        progress.finish()
-        progress = myprogress.make_progress(max_value=length)
+            if show_progress:
+                progress.update(i+1)
+        if show_progress:
+            progress.finish()
+        if show_progress:
+            progress = myprogress.make_progress(max_value=length)
         for i, doc in enumerate(documents):
             self.add_annotation(cursor, doc, did_globaldid_map[i])
-            progress.update(i+1)
-        progress.finish()
+            if show_progress:
+                progress.update(i+1)
+        if show_progress:
+            progress.finish()
         did_globaldid_map = None
     def add_sentences(self, cursor: sqlite3.Cursor, document: nlelement.Document, doc_id):
         sid_globalsid_map = dict()
@@ -247,9 +267,9 @@ class DatabaseLoader:
             doc_id = document_id
         for token in nlelement.tokens(document):
             if hasattr(token, 'semroles'):
-                for semrole, semtok in token.semroles.items():
+                for semrole, semtok_ref in token.semroles.items():
                     pred_id = self.__refer_token_id__(cursor, doc_id, nlelement.make_reference(token))
-                    semtok_id = self.__refer_token_id__(cursor, doc_id, nlelement.make_reference(semtok))
+                    semtok_id = self.__refer_token_id__(cursor, doc_id, semtok_ref)
                     if pred_id and pred_id >= 0:
                         cursor.execute('INSERT INTO SemanticRole(PREDICATE, SEMROLE, ANTECEDENT) VALUES (?, ?, ?);', (pred_id, semrole, semtok_id))
                     else:
@@ -312,13 +332,26 @@ class DatabaseLoader:
                         doc_id, sent_id, chunk_id, tok.tid, tok.surface, tok.basic_surface, tok.read, tok.part, 
                         tok.attr1, tok.attr2, tok.conj_type, tok.conj_form, tok.named_entity, tok.pas_type
                     )
-        cursor.executemany("""
-            INSERT INTO TOKENS(
-                DOCUMENT_ID, SENTENCE_ID, CHUNK_ID, TID, SURFACE, BASE, READ, PART, ATTR1, ATTR2, CONJ_TYPE, CONJ_FORM, NAMED_ENTITY, PAS_TYPE
-            ) VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-            )
-            """, MyGenerator(chunk, doc_id, sent_id, chunk_id))
+        default_tok_attrs = dir(nlelement.Token())
+        for tok in chunk.tokens:
+            cursor.execute("""
+                INSERT INTO TOKENS(
+                    DOCUMENT_ID, SENTENCE_ID, CHUNK_ID, TID, SURFACE, BASE, READ, PART, ATTR1, ATTR2, CONJ_TYPE, CONJ_FORM, NAMED_ENTITY, PAS_TYPE
+                ) VALUES (
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                )
+                """, (doc_id, sent_id, chunk_id, tok.tid, tok.surface, tok.basic_surface, tok.read, tok.part, 
+                        tok.attr1, tok.attr2, tok.conj_type, tok.conj_form, tok.named_entity, tok.pas_type))
+            
+            attr_names = list(filter(lambda d: d not in default_tok_attrs and isinstance(getattr(tok, d), (str, float, int, bool)), dir(tok)))
+            if attr_names:
+                cursor.execute("SELECT ID FROM TOKENS WHERE rowid in (SELECT last_insert_rowid())")
+                token_id = cursor.fetchone()[0]
+                for name in attr_names:
+                    value = getattr(tok, name)
+                    cursor.execute("INSERT INTO Token_Tags(token, name, value) VALUES (?, ?, ?)", (token_id, name, value))
+
+        
     def load(self):
         result = self.load_documents()
         return result
@@ -517,7 +550,7 @@ class DatabaseLoader:
                     else:
                         if not hasattr(pred, 'semroles'):
                             setattr(pred, 'semroles', dict())
-                        pred.semroles[semrole] = document.refer(ant_ref)
+                        pred.semroles[semrole] = ant_ref
     def load_coreference_links(self, document: nlelement.Document, doc_id):
         cursor = self.connector.cursor()
         cursor.execute("""
@@ -579,6 +612,7 @@ class DatabaseLoader:
         cursor.close()
     def load_tokens(self, sentence_id, sentence):
         cursor = self.connector.cursor()
+        attr_cursor = self.connector.cursor()
         tokens = []
         cursor.execute("SELECT * FROM TOKENS WHERE SENTENCE_ID = ? ORDER BY TID", (sentence_id,))
         for token_id, document_id, sentence_id, chunk_id, tid, surface, base, read, part, attr1, attr2, conj_type, conj_form, named_entity, pas_type in cursor.fetchall():
@@ -599,11 +633,15 @@ class DatabaseLoader:
                 token.sahen = (token.attr1 == 'サ変')
                 token.normalnoun = (token.attr1 == '一般')
                 token.adjectivenoun = (token.attr1 == '副詞可能')
+            attr_cursor.execute("SELECT NAME, VALUE FROM Token_Tags WHERE token = ?", (token_id,))
+            for name, value in attr_cursor.fetchall():
+                setattr(token, name, value)
             if chunk_id not in self.chunkid_contains_list:
                 self.chunkid_contains_list[chunk_id] = list()
             self.chunkid_contains_list[chunk_id].append(tid)
             #self.tokenid_localize_table[token_id] = (self.seeking_sid, tid)
             tokens.append(token)
+        attr_cursor.close()
         cursor.close()
         return tokens
     def __token_post_process__(self, chunk):
@@ -622,6 +660,28 @@ class DatabaseLoader:
             elif token.surface == '」':
                 chunk.end_paren = True
                 chunk.emphasis = True
+
+class DatabaseWriter:
+    def __init__(self, db_filename, append=False):
+        self.loader = DatabaseLoader(db_filename)
+        cursor = self.loader.connector.cursor()
+        cursor.execute("SELECT count(*) from SQLITE_MASTER WHERE TYPE='table'")
+        if cursor.fetchone()[0] == 0:
+            self.loader.create_tables()
+        elif not append:
+            self.loader.clear()
+        self.loader.update_views()
+        cursor.close()
+        
+    def __enter__(self):
+        return self
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.loader.connector.commit()
+        self.loader.__exit__(exc_type, exc_value, traceback)
+
+    def add_documents(self, documents):
+        self.loader.save_in_additional(documents)
+
 
 def load(dbname):
     with DatabaseLoader(dbname) as loader:
