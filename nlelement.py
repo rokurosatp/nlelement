@@ -401,7 +401,7 @@ class Chunk:
         Returns:
             Token:機能語のトークン
         """
-        if len(self.tokens) <= self.func_position:
+        if self.head_position == self.func_position or len(self.tokens) <= self.func_position:
             return []
         else:
             return self.tokens[self.func_position:]
@@ -411,7 +411,7 @@ class Chunk:
         """
         if len(self.tokens) == 0:
             return None
-        elif len(self.tokens) <= self.func_position or self.func_position < 0:
+        elif self.head_position == self.func_position or len(self.tokens) <= self.func_position or self.func_position < 0:
             return self.tokens[-1]
         else:
             return self.tokens[self.head_position]
