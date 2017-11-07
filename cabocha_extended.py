@@ -265,6 +265,22 @@ def __is_case__(token):
 def __get_depend_number__(expr):
     return int(expr.replace('D', '').replace('P', '').replace('I', ''))
 
+def validate_reference(document: nlelement.Document, reference):
+    """状況を把握するために無効参照があった場合に例外を送出する
+    """
+    if document.refer(reference) is None:
+        sent = document.refer_sentence(reference.sid)
+        if not document.refer_sentence(reference.sid):
+            content_expr = '{}'.format(tuple(map(lambda s: s.sid, document.sentences))) if document.sentences else "[no-contents]"
+            raise RuntimeError('[{}]Invalid sentence reference {} not in {}'.format(document.name, reference.sid, content_expr))
+        else:
+            if isinstance(reference, nlelement.TokenReference):
+                content_expr = '[{}, {}]'.format(sent.tokens[0].tid, sent.tokens[-1].tid) if sent.tokens else "[no-contents]"
+                raise RuntimeError('[{}]Invalid reference {} not in {}{}'.format(document.name, reference, sent.get_surface(), content_expr))
+            elif isinstance(reference, nlelement.ChunkReference):
+                content_expr = '[{}, {}]'.format(sent.chunks[0].tid, sent.chunks[-1].tid) if sent.chunks else "[no-contents]"
+                raise RuntimeError('[{}]Invalid reference {} not in {}{}'.format(document.name, reference, sent.get_surface(), content_expr))
+
 class CabochaLoader:
     def __init__(self, directory, as_label=False, use_standard=False):
         self.directory = directory
@@ -616,7 +632,7 @@ class CabochaDumper:
                         # 確か
                         if value is None:
                             continue
-                        refered_entities.append(nlelement.make_reference(value))                            
+                        refered_entities.append(value)                            
                     refered_entities.sort()
         if dump_type in ['scored_output', 'result', 'standard']:
             for tok in nlelement.tokens(document):
@@ -672,7 +688,7 @@ class CabochaDumper:
                 if hasattr(tok, "semroles"):
                     for key, value in tok.semroles.items():
                         label_key = key if dump_type != "result" else "label_"+key
-                        ref = nlelement.make_reference(value)
+                        ref = value
                         if not hasattr(tok, "entity_links"):
                             tok.entity_links = dict()
                         if label_key not in tok.entity_links:
@@ -718,7 +734,7 @@ class CabochaDumper:
                         for value in values:
                             if dump_type in ['result', 'standard'] and value.label == 0.0:
                                 continue
-                            ref = nlelement.make_reference(value)
+                            ref = value
                             if not hasattr(tok, "entity_links"):
                                 tok.entity_links = dict()
                             if key in tok.entity_links:
