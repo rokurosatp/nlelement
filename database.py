@@ -71,12 +71,12 @@ class DatabaseLoader:
         if isinstance(documents, list):
             if documents:
                 if isinstance(documents[0], nlelement.Document):
-                    file_path = os.path.expanduser('~/Dropbox/Logs/db_coref.log')
-                    self.file = open(file_path, 'a')
+                    #file_path = os.path.expanduser('~/Dropbox/Logs/db_coref.log')
+                    #self.file = open(file_path, 'a')
                     cursor = self.connector.cursor()
                     self.add_documents(cursor, documents, show_progress=False)
                     cursor.close()
-                    self.file.close()
+                    #self.file.close()
                 else:
                     raise TypeError(
                         "Type of documents needs list<Document> not list<{0}>".format(
@@ -93,13 +93,13 @@ class DatabaseLoader:
         if isinstance(documents, list):
             if documents:
                 if isinstance(documents[0], nlelement.Document):
-                    file_path = os.path.expanduser('~/Dropbox/Logs/db_coref.log')
-                    self.file = open(file_path, 'w')
+                    #file_path = os.path.expanduser('~/Dropbox/Logs/db_coref.log')
+                    #self.file = open(file_path, 'w')
                     cursor = self.connector.cursor()
                     self.add_documents(cursor, documents)
                     self.connector.commit()
                     cursor.close()
-                    self.file.close()
+                    #self.file.close()
                 else:
                     raise TypeError(
                         "Type of documents needs list<Document> not list<{0}>".format(
@@ -273,7 +273,8 @@ class DatabaseLoader:
                     if pred_id and pred_id >= 0:
                         cursor.execute('INSERT INTO SemanticRole(PREDICATE, SEMROLE, ANTECEDENT) VALUES (?, ?, ?);', (pred_id, semrole, semtok_id))
                     else:
-                        print('ana: {0}, ant: {1}'.format(pred_id, semtok_id), file=self.file)
+                        pass
+                        #print('ana: {0}, ant: {1}'.format(pred_id, semtok_id), file=self.file)
     def add_coreference_links(self, cursor: sqlite3.Cursor, document: nlelement.Document, document_id=None):
         """共参照関係の追加
         """
@@ -296,10 +297,12 @@ class DatabaseLoader:
                                 (anaphora_id, coref.link_type, antecedent_id)
                             )
                         except sqlite3.IntegrityError as e:
-                            print('ana: {0}, ant: {1}'.format(anaphora_id, antecedent_id), file=self.file)
-                            print(e, file=self.file)
+                            pass
+                            #print('ana: {0}, ant: {1}'.format(anaphora_id, antecedent_id), file=self.file)
+                            #print(e, file=self.file)
                     else:
-                        print('ana: {0}, ant: {1}'.format(anaphora_id, antecedent_id), file=self.file)
+                        pass
+                        #print('ana: {0}, ant: {1}'.format(anaphora_id, antecedent_id), file=self.file)
                 elif name in case_set:
                     case = name# case_normalize_table[name]
                     anaphora_id = self.__refer_token_id__(cursor, doc_id, coref.anaphora_ref)
@@ -311,10 +314,12 @@ class DatabaseLoader:
                                 (anaphora_id, case, coref.link_type, antecedent_id)
                             )
                         except sqlite3.IntegrityError as e:
-                            print('ana: {0}, ant: {1}'.format(anaphora_id, antecedent_id), file=self.file)
-                            print(e)
+                            pass
+                            #print('ana: {0}, ant: {1}'.format(anaphora_id, antecedent_id), file=self.file)
+                            #print(e)
                     else:
-                        print('ana: {0}, ant: {1}'.format(anaphora_id, antecedent_id), file=self.file)
+                        pass
+                        #print('ana: {0}, ant: {1}'.format(anaphora_id, antecedent_id), file=self.file)
 
     def add_tokens(self, cursor: sqlite3.Cursor, chunk: nlelement.Chunk, doc_id, sent_id, chunk_id):
         """データベースに単語を追加する
