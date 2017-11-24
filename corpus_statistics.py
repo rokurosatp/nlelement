@@ -279,8 +279,8 @@ def count_syncha_stat(category=None, testroutine=None, section='train'):
     process.wait()
 
 def plot_coref_stat():
-    stats = PredicateStatTable()
-    stats.load('dat/log/pas_stats.json')
+    stats = CoreferenceStatTable()
+    stats.load('dat/log/coref_stats.json')
     stats.show()
 
 def plot_pas_stat():
@@ -304,6 +304,7 @@ def count_coref_stat_of(corpus, outfilename):
         for doc in loader.load_as_iter():
             stats.count_doc(doc)
         stats.save(outfilename)
+        stats.show()
 
 def count_pred_stat_of(corpus, outfilename):
     stats = PredicateStatTable()
@@ -311,6 +312,7 @@ def count_pred_stat_of(corpus, outfilename):
         for doc in loader.load_as_iter():
             stats.count_doc(doc)
         stats.save(outfilename)
+        stats.show()
 
 def count_syncha_stat_of(corpus, outfilename):
     with database.DatabaseLoader(corpus) as loader:
