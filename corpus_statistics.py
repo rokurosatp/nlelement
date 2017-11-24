@@ -4,6 +4,7 @@ import texttable
 import matplotlib
 import json
 import re
+import pathlib
 from nlelement import nlelement, bccwj, database
 from experiment import experiment
 
@@ -296,3 +297,31 @@ def count_all_corpus_stat():
     count_syncha_stat(testroutine=experiment.TestRoutine.BccwjSyncha())
     count_coref_stat(testroutine=experiment.TestRoutine.BccwjCoreference())
     count_pas_stat(testroutine=experiment.TestRoutine.BccwjPredicate())
+
+def count_coref_stat_of(corpus, outfilename):
+    stats = CoreferenceStatTable()
+    with database.DatabaseLoader(corpus) as loader:
+        for doc in loader.load_as_iter():
+            stats.count_doc(doc)
+        stats.save(outfilename)
+
+def count_pred_stat_of(corpus, outfilename):
+    stats = PredicateStatTable()
+    with database.DatabaseLoader(corpus) as loader:
+        for doc in loader.load_as_iter():
+            stats.count_doc(doc)
+        stats.save(outfilename)
+
+def count_syncha_stat_of(corpus, outfilename):
+    with database.DatabaseLoader(corpus) as loader:
+        process = subprocess.Popen(['./predicate/external/syncha-0.3.1.1/syncha', '-I', '2', '-O', '2', '-k'], stdin=subprocess.PIPE)
+        for doc in loader.load_as_iter():
+            input_str = cabocha_extended.dump_doc(doc, from_label=True)
+            process.stdin.write(input_str.encode('utf-8'))
+        process.stdin.close()
+        process.wait()
+
+def count_stat_of(corpus, outfilepath):
+    count_coref_stat_of(corpus, str(pathlib.Path(outfilepath)/"coref_stat.json"))
+    count_pred_stat_of(corpus, str(pathlib.Path(outfilepath)/"pred_stat.json"))
+    count_syncha_stat_of(corpus, str(pathlib.Path(outfilepath)/"syncha_stat.json"))
