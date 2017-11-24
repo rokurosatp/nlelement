@@ -5,7 +5,7 @@ import matplotlib
 import json
 import re
 import pathlib
-from nlelement import nlelement, bccwj, database
+from nlelement import nlelement, database
 
 
 class ArgStatElem:
