@@ -6,7 +6,6 @@ import json
 import re
 import pathlib
 from nlelement import nlelement, bccwj, database
-from experiment import experiment
 
 
 class ArgStatElem:
@@ -221,63 +220,6 @@ class PredicateStatTable:
     def plot(self, filename=None):
         pass
 
-def count_pas_stat(category=None, testroutine=None, section='train'):
-    import re
-    stats = PredicateStatTable()
-    
-    if testroutine is None:
-        tester = experiment.TestRoutine.BccwjSyncha()
-    else:
-        tester = testroutine  
-    tester.doc_devider.load()
-    if category:
-        for doc in tester.doc_devider.get_docs(section, tester.loader):
-            if re.match(category+r".*", doc.name):
-                stats.count_doc(doc)
-    else:
-        for doc in tester.doc_devider.get_docs(section, tester.loader):
-            stats.count_doc(doc)
-    stats.save('dat/log/pas_stats.json')
-    stats.show()
-
-
-def count_coref_stat(category=None, testroutine=None, section='train'):
-    import re
-    stats = CoreferenceStatTable()
-    if testroutine is None:
-        tester = experiment.TestRoutine.BccwjSyncha()
-    else:
-        tester = testroutine    
-    tester.doc_devider.load()
-    if category:
-        for doc in tester.doc_devider.get_docs(section, tester.loader):
-            if re.match(category+r".*", doc.name):
-                stats.count_doc(doc)
-    else:
-        for doc in tester.doc_devider.get_docs(section, tester.loader):
-            stats.count_doc(doc)
-    stats.save('dat/log/coref_stats.json')
-    stats.show()
-
-def count_syncha_stat(category=None, testroutine=None, section='train'):
-    import subprocess
-    import sys
-    from nlelement import cabocha_extended
-    stats = PredicateStatTable()
-    process = subprocess.Popen(['./predicate/external/syncha-0.3.1.1/syncha', '-I', '2', '-O', '2', '-k'], stdin=subprocess.PIPE)
-    #db = database.DatabaseLoader(bccwj.get_corpus_path())
-    
-    if testroutine is None:
-        tester = experiment.TestRoutine.BccwjSyncha()
-    else:
-        tester = testroutine  
-    tester.doc_devider.load()
-    for doc in tester.doc_devider.get_docs(section, tester.loader):
-        input_str = cabocha_extended.dump_doc(doc, from_label=True)
-        process.stdin.write(input_str.encode('utf-8'))
-    process.stdin.close()
-    process.wait()
-
 def plot_coref_stat():
     stats = CoreferenceStatTable()
     stats.load('dat/log/coref_stats.json')
@@ -292,11 +234,6 @@ def plot_syncha_stat():
     stats = PredicateStatTable()
     stats.load('dat/log/syncha_stats.json')
     stats.show()
-
-def count_all_corpus_stat():
-    count_syncha_stat(testroutine=experiment.TestRoutine.BccwjSyncha())
-    count_coref_stat(testroutine=experiment.TestRoutine.BccwjCoreference())
-    count_pas_stat(testroutine=experiment.TestRoutine.BccwjPredicate())
 
 def count_coref_stat_of(corpus, outfilename):
     stats = CoreferenceStatTable()
@@ -315,6 +252,9 @@ def count_pred_stat_of(corpus, outfilename):
         stats.show()
 
 def count_syncha_stat_of(corpus, outfilename):
+    import subprocess
+    import sys
+    from nlelement import cabocha_extended
     with database.DatabaseLoader(corpus) as loader:
         process = subprocess.Popen(['./predicate/external/syncha-0.3.1.1/syncha', '-I', '2', '-O', '2', '-k'], stdin=subprocess.PIPE)
         for doc in loader.load_as_iter():
