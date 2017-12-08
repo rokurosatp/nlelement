@@ -275,6 +275,12 @@ class DatabaseLoader:
                     else:
                         pass
                         #print('ana: {0}, ant: {1}'.format(pred_id, semtok_id), file=self.file)
+            if hasattr(token, 'semantic_label'):
+                pred_id = self.__refer_token_id__(cursor, doc_id, nlelement.make_reference(token))
+                if pred_id and pred_id >= 0:
+                    cursor.execute('INSERT INTO Token_Tags(TOKEN, NAME, VALUE) VALUES (?, semantic_label, ?)', (pred_id, token.semantic_label))
+                else:
+                    pass
     def add_coreference_links(self, cursor: sqlite3.Cursor, document: nlelement.Document, document_id=None):
         """共参照関係の追加
         """
