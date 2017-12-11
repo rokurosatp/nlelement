@@ -549,9 +549,10 @@ class CabochaLoader:
                 tok.named_entity_part = ne_features[1] if len(ne_features) > 2 else ''
             elif re.match(r'(I|O)', anno):
                 pass
-            elif not self.use_standard and re.match(r'([^=]+=[\w\d\.;]+,?)+', anno):
+            elif not self.use_standard and re.match(r'([^=]+=[-\w\d\.;]+,?)+', anno):
                 for id_resolver in anno.split(','):
-                    match = re.match(r'([^=]+)=([\w\d\.;]+)', id_resolver)
+                    #print(id_resolver)
+                    match = re.match(r'([^=]+)=([-\w\d\.;]+)', id_resolver)
                     if not match:
                         pass
                     else:
@@ -597,7 +598,10 @@ class CabochaLoader:
             else:
                 if key not in tok.entity_links:
                     tok.entity_links[key] = []
-                tok.entity_links[key].append((int(tup[0]), float(tup[1]), float(tup[2])))
+                try:
+                    tok.entity_links[key].append((int(tup[0]), float(tup[1]), float(tup[2])))
+                except ValueError as e:
+                    raise ValueError(str(e)+"{}".format(tup))
     def __token_post_process__(self, chunk, token):
         """トークンをチャンクに追加した後に追加したトークンに応じて属性値を変更する
         内容語の場合は機能表現の位置を+1するとか
