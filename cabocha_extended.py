@@ -734,11 +734,13 @@ class CabochaDumper:
                         for value in values:
                             if dump_type in ['result', 'standard'] and value.label == 0.0:
                                 continue
-                            ref = value
+                            ref = nlelement.TokenReference(value.ant_sid, value.ant_tid)
                             if not hasattr(tok, "entity_links"):
                                 tok.entity_links = dict()
-                            if key in tok.entity_links:
-                                tok.entity_links[key].append(entity_id_table[ref.to_tuple()])
+                            if key not in tok.entity_links:
+                                tok.entity_links[key] = []
+                            if ref.to_tuple() in entity_id_table:
+                                tok.entity_links[key].append((entity_id_table[ref.to_tuple()], value.label, value.probable))
     @staticmethod
     def preprocess_doc(document: nlelement.Document, dump_type):
         """entityの参照生成のためにid=?,eq=?形式のメンバをあらかじめtokenに張り付ける
