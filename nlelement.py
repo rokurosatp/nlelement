@@ -547,7 +547,7 @@ def get_verbchunk_verb(chunk: Chunk):
     pre_head_posi = chunk.head_position - 1 if chunk.head_position - 1 < len(chunk.tokens) else -1
     phead = chunk.tokens[pre_head_posi] if pre_head_posi >= 0 else None
     if head.part == "動詞":
-        if not re.match(r"(する|為る)", head.basic_surface):
+        if re.match(r"(する|為る)", head.basic_surface):
             if not phead:
                 expr = 'する'
             else:
