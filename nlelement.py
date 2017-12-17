@@ -176,6 +176,19 @@ class Document:
             raw_sentence.append(sent.get_surface())
         return raw_sentence
 
+    def get_limited_surface(self):
+        raw_surface = ''
+        for tok in tokens(self):
+            raw_surface += tok.surface
+            if len(raw_surface) > 8:
+                raw_surface = raw_surface[:8] + "..."
+                return raw_surface
+        return raw_surface
+        
+
+    def __repr__(self):
+        return "<Document: {}{}>".format(self.name, "({})".format(self.get_limited_surface()) if self.sentences else "[empty]")
+
 class Sentence:
     """
     文を格納するクラス
@@ -264,6 +277,16 @@ class Sentence:
             raw_sent += token.surface
         return raw_sent
     surface = property(get_surface)
+    def get_limited_surface(self):
+        raw_sent = ''
+        for token in self.tokens:
+            raw_sent += token.surface
+            if len(raw_sent) > 8:
+                raw_sent = raw_sent[:8] + "..."
+                return raw_sent
+        return raw_sent
+    def __repr__(self):
+        return "<Sentence: {}({})>".format(self.sid, self.get_limited_surface())
 
 def __is_case__(token):
     if token is None or token.part != '助詞' or token.attr1 != '格助詞':
@@ -506,6 +529,8 @@ class Chunk:
         for tok in self.tokens:
             surface += tok.surface
         return surface
+    def __repr__(self):
+        return "<{}: {}({}, {})>".format("Chunk", self.get_surface(), self.sid, self.cid)
     surface = property(get_surface)
 
 class Token:
@@ -558,6 +583,11 @@ class Token:
         print(self.surface, end='')
     def get_length(self):
         return len(self.surface)
+    def get_surface(self):
+        return self.surface
+    def __repr__(self):
+        return "<{}: {}({}, {})>".format("Token", self.surface, self.sid, self.tid)
+    """
     def __repr__(self):
         members = dict()
         members['id:'] = str(self.tid)
@@ -573,6 +603,7 @@ class Token:
         members['conj_type:']=self.conj_type
         members['conj_form:']=self.conj_form
         return repr(members)
+    """
 
 def get_verbchunk_verb(chunk: Chunk):
     """フレームとのマッチング用に動詞の表現を統一する
