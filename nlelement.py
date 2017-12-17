@@ -437,7 +437,7 @@ class Chunk:
                 self.chunk_type = 'adjective'
                 break
             # Unidic用(コピュラの検出は実質辞書依存なのでここに書くのはちょっと変か？
-            elif token.conj_form == '助動詞-ダ' or token.conj_form == '助動詞-デス':
+            elif token.conj_type == '助動詞-ダ' or token.conj_type == '助動詞-デス':
                 self.chunk_type = 'copula'
             # JUMAN用(コピュラの検出は実質辞書依存なのでここに書くのはちょっと変か？
             elif re.match('(ダ|デアル|デス)列', token.conj_form):

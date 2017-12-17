@@ -73,7 +73,7 @@ class ConfigSets:
             "outputform": "-O",
         }
         options = []
-        for key, value in option_map:
+        for key, value in option_map.items():
             if hasattr(self, key):
                 options.append((value, getattr(self, key)))
         return " ".join(map(lambda x:" ".join(x), options))
@@ -81,11 +81,12 @@ class ConfigSets:
     @staticmethod
     def unidic():
         config = ConfigSets(dicdir="/var/lib/mecab/dic/unidic", pos_unpacker=MorphUnpacker.unidic())
+        return config
 
     @staticmethod
     def ipadic():
         config = ConfigSets(dicdir="/usr/local/lib/mecab/dic/ipadic-utf8", pos_unpacker=MorphUnpacker.unidic())
-
+        return config
 
 class MeCabParser:
     def __init__(self, config=None):
@@ -94,6 +95,7 @@ class MeCabParser:
             option = ""
         else:
             option = config.to_option()
+        self.option = option
         self.manalyzer = MeCab.Model(option)
         self.parser = self.manalyzer.createTagger()
         self.unpacker = config.pos_unpacker if hasattr(config, "pos_unpacker") else MorphUnpacker.ipadic()
