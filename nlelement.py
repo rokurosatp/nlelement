@@ -263,7 +263,7 @@ class Sentence:
         for token in self.tokens:
             raw_sent += token.surface
         return raw_sent
-    surface = property(getter=get_surface)
+    surface = property(get_surface)
 
 def __is_case__(token):
     if token is None or token.part != '助詞' or token.attr1 != '格助詞':
@@ -362,9 +362,8 @@ class Chunk:
         self.cid = 0
         self.tokens = []
         (self.func_position, self.head_position, self.token_num) = (0, 0, 0)
-        self._link_id = -1
-        self._link = weakref.ref(None)
-        self.link = None
+        self.link_id = -1
+        self._link = None
         self.reverse_links = _ReverseLinkElem()
         self.first_mentioned = False
         self.chain_num = 0
@@ -377,10 +376,10 @@ class Chunk:
         self.chunk_type = ''
 
     def _get_link(self):
-        return self._link()
+        return self._link() if self._link is not None else None
     def _set_link(self, link_chunk):
-        self._link = weakref(link_chunk)
-    link = property(getter=_get_link, setter=_set_link)
+        self._link = weakref.ref(link_chunk)
+    link = property(_get_link, _set_link)
 
     def set_token_info(self):
         """追加された形態素の一覧から格などの属性を設定する
@@ -507,7 +506,7 @@ class Chunk:
         for tok in self.tokens:
             surface += tok.surface
         return surface
-    surface = property(getter=get_surface)
+    surface = property(get_surface)
 
 class Token:
     """形態素（単語）のクラス
