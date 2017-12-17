@@ -356,13 +356,13 @@ class Chunk:
         """
         self.chunk_type = 'elem'
         for token in self.tokens:
-            if token.part == '動詞' and token.is_indep:
+            if token.part == '動詞':
                 self.chunk_type = 'verb'
-            elif re.match('(形容詞|形容動詞)', token.part) and token.is_indep:
+            elif re.match('(形容詞|形容動詞)', token.part):
                 self.chunk_type = 'adjective'
                 break
-            # Chasen用(コピュラの検出は実質辞書依存なのでここに書くのはちょっと変か？
-            elif token.attr1 == '特殊・ダ' or token.attr1 == '特殊・デス':
+            # Unidic用(コピュラの検出は実質辞書依存なのでここに書くのはちょっと変か？
+            elif token.conj_form == '助動詞-ダ' or token.conj_form == '助動詞-デス':
                 self.chunk_type = 'copula'
             # JUMAN用(コピュラの検出は実質辞書依存なのでここに書くのはちょっと変か？
             elif re.match('(ダ|デアル|デス)列', token.conj_form):
