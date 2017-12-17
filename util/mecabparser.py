@@ -19,7 +19,7 @@ class MorphUnpacker:
         token = nlelement.Token()
         pos_tup = tuple(map(lambda i: feature[i], self.pos))
         token.surface = surface
-        token.pos = "-".join(pos_tup)
+        token.pos = "-".join(filter(lambda e: e and e != "*", pos_tup))
         token.part = pos_tup[0]
         token.attr1 = pos_tup[1] if len(pos_tup) > 1 else "*"
         token.attr2 = pos_tup[2] if len(pos_tup) > 2 else "*"

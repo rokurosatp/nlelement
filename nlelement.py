@@ -1,4 +1,6 @@
 import re
+import weakref
+
 class ChunkReference:
     def __init__(self, sid, cid):
         self.sid = sid
@@ -261,6 +263,8 @@ class Sentence:
         for token in self.tokens:
             raw_sent += token.surface
         return raw_sent
+    surface = property(getter=get_surface)
+
 def __is_case__(token):
     if token is None or token.part != '助詞' or token.attr1 != '格助詞':
         return False
@@ -307,6 +311,47 @@ class CoreferenceEntry:
         """先行詞の表層表現を取得
         """
         return document.refer(self.antecedent_ref).get_surface()+":"+document.refer(self.anaphora_ref).get_surface()
+
+class _ReverseLinkElem:
+    def __init__(self):
+        self.links = []
+
+    def __getitem__(self, i):
+        if isinstance(i, int):
+            return self.links[i]()
+        elif isinstance(i, slice):
+            return list(map(weakref.ref.__call__, self.links[i]))
+    
+    def __iter__(self):
+        for link in self.links:
+            yield link()
+    
+    def __setitem__(self, i, link):
+        self.links[i] = weakref.ref(link)
+
+    def __len__(self):
+        return len(self.links)
+
+    def append(self, link):
+        self.links.append(weakref.ref(link))
+
+    def index(self, link, start=None, stop=None):
+        if start is not None:
+            if stop is not None:
+                iterator = enumerate(self.links[start:])
+            else:
+                iterator = enumerate(self.links[start:stop])
+        else:
+            if stop is not None:
+                iterator = enumerate(self.links[:])
+            else:
+                iterator = enumerate(self.links[:stop])
+        for i, _link in iterator:
+            if _link() is link:
+                return i
+        raise ValueError("{} is not in list".format(link))
+
+
 class Chunk:
     """文節チャンクのクラス
     """
@@ -317,9 +362,10 @@ class Chunk:
         self.cid = 0
         self.tokens = []
         (self.func_position, self.head_position, self.token_num) = (0, 0, 0)
-        self.link_id = -1
+        self._link_id = -1
+        self._link = weakref.ref(None)
         self.link = None
-        self.reverse_links = []
+        self.reverse_links = _ReverseLinkElem()
         self.first_mentioned = False
         self.chain_num = 0
         (self.in_q, self.begin_paren, self.end_paren, self.emphasis) = (0, False, False, False)
@@ -329,6 +375,13 @@ class Chunk:
         self.case = ''
         self.particle = None
         self.chunk_type = ''
+
+    def _get_link(self):
+        return self._link()
+    def _set_link(self, link_chunk):
+        self._link = weakref(link_chunk)
+    link = property(getter=_get_link, setter=_set_link)
+
     def set_token_info(self):
         """追加された形態素の一覧から格などの属性を設定する
         """
@@ -454,6 +507,8 @@ class Chunk:
         for tok in self.tokens:
             surface += tok.surface
         return surface
+    surface = property(getter=get_surface)
+
 class Token:
     """形態素（単語）のクラス
     ベースの形を定義しているだけなので
