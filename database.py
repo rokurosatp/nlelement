@@ -278,7 +278,7 @@ class DatabaseLoader:
             if hasattr(token, 'semantic_label'):
                 pred_id = self.__refer_token_id__(cursor, doc_id, nlelement.make_reference(token))
                 if pred_id and pred_id >= 0:
-                    cursor.execute('INSERT INTO Token_Tags(TOKEN, NAME, VALUE) VALUES (?, semantic_label, ?)', (pred_id, token.semantic_label))
+                    cursor.execute('INSERT INTO VerbSemantic(PREDICATE, SEMANTIC) VALUES (?, ?)', (pred_id, token.semantic_label))
                 else:
                     pass
     def add_coreference_links(self, cursor: sqlite3.Cursor, document: nlelement.Document, document_id=None):
@@ -343,7 +343,7 @@ class DatabaseLoader:
                         doc_id, sent_id, chunk_id, tok.tid, tok.surface, tok.basic_surface, tok.read, tok.part, 
                         tok.attr1, tok.attr2, tok.conj_type, tok.conj_form, tok.named_entity, tok.pas_type
                     )
-        default_tok_attrs = dir(nlelement.Token())
+        default_tok_attrs = dir(nlelement.Token()) + ["semantic_label"]
         for tok in chunk.tokens:
             cursor.execute("""
                 INSERT INTO TOKENS(
@@ -562,6 +562,25 @@ class DatabaseLoader:
                         if not hasattr(pred, 'semroles'):
                             setattr(pred, 'semroles', dict())
                         pred.semroles[semrole] = ant_ref
+        cursor.execute("""
+            SELECT * FROM VerbSemantic WHERE PREDICATE IN (
+                SELECT ID FROM TOKENS WHERE DOCUMENT_ID = ?
+            )
+            """, (doc_id,))
+        for pred_token_id, semantic in cursor.fetchall():
+            pred_stid = self.get_token_ref(pred_token_id)
+            #pred_stid = self.tokenid_localize_table[pred_token_id] \
+            #    if pred_token_id in self.tokenid_localize_table else None
+            #ant_stid = self.tokenid_localize_table[ant_token_id] \
+            #    if ant_token_id in self.tokenid_localize_table else None
+            if pred_stid is not None:
+                pred_ref = nlelement.TokenReference(*pred_stid)
+                pred = document.refer(pred_ref)
+                if not pred:
+                    print('error pred is none({0}, {1})'.format(pred_ref.sid, pred_ref.tid))
+                else:
+                    setattr(pred, 'semantic_label', semantic)
+        
     def load_coreference_links(self, document: nlelement.Document, doc_id):
         cursor = self.connector.cursor()
         cursor.execute("""
