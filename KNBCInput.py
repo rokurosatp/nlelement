@@ -9,7 +9,6 @@ import glob
 import os
 import re
 from enum import Enum
-from application import myprofiles
 from . import nlelement
 
 

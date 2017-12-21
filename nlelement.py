@@ -401,7 +401,11 @@ class Chunk:
     def _get_link(self):
         return self._link() if self._link is not None else None
     def _set_link(self, link_chunk):
-        self._link = weakref.ref(link_chunk)
+        if link_chunk is not None:
+            self._link = weakref.ref(link_chunk)
+        else:
+            self._link = None
+
     link = property(_get_link, _set_link)
 
     def set_token_info(self):
