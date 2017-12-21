@@ -327,6 +327,8 @@ class DatabaseLoader:
                         pass
                         #print('ana: {0}, ant: {1}'.format(anaphora_id, antecedent_id), file=self.file)
 
+    default_tok_attrs = dir(nlelement.Token())
+    default_tok_attrs.append("semantic_label")
     def add_tokens(self, cursor: sqlite3.Cursor, chunk: nlelement.Chunk, doc_id, sent_id, chunk_id):
         """データベースに単語を追加する
         """
@@ -343,7 +345,6 @@ class DatabaseLoader:
                         doc_id, sent_id, chunk_id, tok.tid, tok.surface, tok.basic_surface, tok.read, tok.part, 
                         tok.attr1, tok.attr2, tok.conj_type, tok.conj_form, tok.named_entity, tok.pas_type
                     )
-        default_tok_attrs = dir(nlelement.Token()) + ["semantic_label"]
         for tok in chunk.tokens:
             cursor.execute("""
                 INSERT INTO TOKENS(
@@ -354,7 +355,7 @@ class DatabaseLoader:
                 """, (doc_id, sent_id, chunk_id, tok.tid, tok.surface, tok.basic_surface, tok.read, tok.part, 
                         tok.attr1, tok.attr2, tok.conj_type, tok.conj_form, tok.named_entity, tok.pas_type))
             
-            attr_names = list(filter(lambda d: d not in default_tok_attrs and isinstance(getattr(tok, d), (str, float, int, bool)), dir(tok)))
+            attr_names = list(filter(lambda d: d not in DatabaseLoader.default_tok_attrs and isinstance(getattr(tok, d), (str, float, int, bool)), dir(tok)))
             if attr_names:
                 cursor.execute("SELECT ID FROM TOKENS WHERE rowid in (SELECT last_insert_rowid())")
                 token_id = cursor.fetchone()[0]
