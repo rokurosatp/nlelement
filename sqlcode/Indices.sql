@@ -9,4 +9,5 @@ CREATE INDEX Token_Tag_Idx ON Token_Tags(TOKEN);
 CREATE INDEX Coreference_Idx ON Coreference(ANAPHORA);
 CREATE INDEX Predicate_Idx ON PredicateTerm(Predicate);
 CREATE INDEX Semrole_Idx ON Semanticrole(Predicate);
+CREATE INDEX Semantic_Idx ON VerbSemantic(Predicate);
 CREATE INDEX DOCNAME_IDX ON Documents(Name);
