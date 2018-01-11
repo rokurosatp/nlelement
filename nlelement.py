@@ -103,7 +103,7 @@ class Document:
                     if name in case_normalize_table:
                         feature_tuple = coref.get_feature_tuple()
                         case = case_normalize_table[name]
-                    else:
+                    elif name != "coref":
                         feature_tuple = coref.get_feature_tuple()
                         case = name
                     chunk_ref = self.chunkref_from_tokenref(TokenReference(feature_tuple[2], feature_tuple[3]))
