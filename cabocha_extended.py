@@ -388,6 +388,10 @@ class CabochaLoader:
                 chunk.token_num += 1
                 self.__token_post_process__(chunk, token)
                 sentence.tokens.append(token)
+        if doc.sentences and sentence.tokens:
+            self.__resolve_entity_id__(doc)
+            self.ids.sent.reset()
+            self.entity_ids = dict()
         return docs
 
     def __resolve_entity_id__(self, doc):
