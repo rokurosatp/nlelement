@@ -106,6 +106,8 @@ class Document:
                     elif name != "coref":
                         feature_tuple = coref.get_feature_tuple()
                         case = name
+                    else:
+                        continue
                     chunk_ref = self.chunkref_from_tokenref(TokenReference(feature_tuple[2], feature_tuple[3]))
                     result.append(
                         (feature_tuple[0], feature_tuple[1], chunk_ref.sid, chunk_ref.cid, case)
