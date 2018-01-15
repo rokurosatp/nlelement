@@ -1,6 +1,7 @@
 """述語項、共参照、意味役割の項オブジェクト
 """
 from . import nlelement
+from . import relation
 
 class PredicateArgument:
     def __init__(self, *args):
@@ -27,6 +28,10 @@ class PredicateArgument:
         return nlelement.TokenReference(self.ana_sid, self.ana_tid)
     def ant_ref(self):
         return nlelement.TokenReference(self.ant_sid, self.ant_tid)
+    def get_relation(self):
+        rel = relation.Relation()
+        rel.ana_ref, rel.ant_ref, rel.case = self.ana_ref(), self.ant_ref(), self.case
+        return rel
 
 class CoreferenceArgument:
     def __init__(self, *args):
@@ -52,3 +57,7 @@ class CoreferenceArgument:
         return nlelement.TokenReference(self.ana_sid, self.ana_tid)
     def ant_ref(self):
         return nlelement.TokenReference(self.ant_sid, self.ant_tid)
+    def get_relation(self):
+        rel = relation.Relation()
+        rel.ana_ref, rel.ant_ref, rel.case = self.ana_ref(), self.ant_ref(), "coref"
+        return rel

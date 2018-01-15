@@ -1,54 +1,7 @@
 import re
 import weakref
-
-class ChunkReference:
-    def __init__(self, sid, cid):
-        self.sid = sid
-        self.cid = cid
-    def to_tuple(self):
-        return (self.sid, self.cid)
-    def __bool__(self):
-        return self.sid >= 0 or self.cid >= 0
-    def __eq__(self, value):
-        if value is None:
-            return False
-        return self.sid == value.sid and self.cid == value.cid
-    def __lt__(self, value):
-        return self.sid < value.sid or (self.sid == value.sid and self.cid < value.cid)
-    def __repr__(self):
-        return '<Ch:{0},{1}>'.format(self.sid, self.cid)
-class TokenReference:
-    def __init__(self, sid, tid):
-        self.sid = sid
-        self.tid = tid
-    def to_tuple(self):
-        return (self.sid, self.tid)
-    def __bool__(self):
-        return self.sid >= 0 or self.tid >= 0
-    def __lt__(self, value):
-        return self.sid < value.sid or (self.sid == value.sid and self.tid < value.tid)
-    def __eq__(self, value):
-        if value is None:
-            return False
-        return self.sid == value.sid and self.tid == value.tid
-    def __repr__(self):
-        return '<Tk:{0},{1}>'.format(self.sid, self.tid)
-class ExoReference:
-    """外界のシンボルの参照(未使用)
-    """
-    def __init__(self, name=None):
-        if name is None:
-            self.name = 'Unknown'
-    def to_tuple(self):
-        return (-2, -2)
-    def __bool__(self):
-        return False
-    def __lt__(self, value):
-        if isinstance(value, ExoReference):
-            return self.name < value.name
-        return True
-    def __repr__(self):
-        return '<Exo: {}>'.format(self.name)
+from . import relation
+from .reference import TokenReference, ChunkReference, ExoReference
 
 def make_reference(element):
     if isinstance(element, Chunk):
@@ -86,7 +39,7 @@ class Document:
             for token in sent.tokens:
                 for name, coref in token.coreference_link.items():
                     if name == 'coref':
-                        result.append(coref.get_feature_tuple())
+                        result.append(coref.get_relation("coref"))
         return result
     def get_predicate_labels(self):
         """文章内に存在する述語項構造ラベルを取得
@@ -101,16 +54,13 @@ class Document:
             for token in sent.tokens:
                 for name, coref in token.coreference_link.items():
                     if name in case_normalize_table:
-                        feature_tuple = coref.get_feature_tuple()
                         case = case_normalize_table[name]
                     elif name != "coref":
-                        feature_tuple = coref.get_feature_tuple()
                         case = name
                     else:
                         continue
-                    chunk_ref = self.chunkref_from_tokenref(TokenReference(feature_tuple[2], feature_tuple[3]))
                     result.append(
-                        (feature_tuple[0], feature_tuple[1], chunk_ref.sid, chunk_ref.cid, case)
+                        coref.get_relation(case)
                     )
         return result
     def refer(self, ref):
@@ -336,6 +286,10 @@ class CoreferenceEntry:
         """先行詞の表層表現を取得
         """
         return document.refer(self.antecedent_ref).get_surface()+":"+document.refer(self.anaphora_ref).get_surface()
+    def get_relation(self, case):
+        rel = relation.Relation()
+        rel.ana_ref, rel.ant_ref, rel.case = self.anaphora_ref, self.antecedent_ref, case
+        return rel
 
 class _ReverseLinkElem:
     def __init__(self):
