@@ -1,3 +1,4 @@
+import os
 import io
 from pathlib import Path
 from .. import nlelement
@@ -17,13 +18,17 @@ except ImportError:
     mpimg_imported = False
 pydot_imported = False
 try:
-    import pydot_ng
+    import pydot_ng as pydot
     pydot_imported = True
 except ImportError:
     pydot_imported = False
 
-def plot_graph(graph, block=False):
+NLELEMENT_VISUALIZER_FONT_NAME = "Yu Gothic UI"
+#if "USERPROFILE" not in os.environ:
+#    NLELEMENT_VISUALIZER_FONT_NAME = "arialuni.ttf"
     
+
+def plot_graph(graph, block=False):
     png_str = graph.create_png(prog="dot")
     sio = io.BytesIO()
     sio.write(png_str)
@@ -38,23 +43,108 @@ def save_graph(graph, filepath):
         filepath_str = str(filepath)
     else:
         filepath_str = filepath
-    graph.save_png(filepath_str)
+    graph.write_png(filepath_str)
 
 def to_graph(element):
+    """nlelementの特定の要素(Document, Chunk)をpydotのグラフに変換
+    """
     if isinstance(element, nlelement.Sentence):
         return sentence_to_graph(element)
+    elif isinstance(element, nlelement.Document):
+        return document_to_graph(element)
     raise ValueError("cannot viisualize {} object".format(type(element)))
 
 def sentence_to_graph(sentence: nlelement.Sentence):
-    graph = pydot_ng.Dot()
+    global NLELEMENT_VISUALIZER_FONT_NAME
+    graph = pydot.Dot()
+    graph.set("charset", "UTF-8")
+    graph.set_node_defaults(fontname=NLELEMENT_VISUALIZER_FONT_NAME, fontsize=32)
+    graph.set_edge_defaults(fontname=NLELEMENT_VISUALIZER_FONT_NAME, fontsize=12)
+    
     for chk in sentence.chunks:
-         graph.add_node(pydot_ng.Node("ch_{}".format(chk.cid), label=chk.get_surface()))
+        n = pydot.Node("ch_{}".format(chk.cid), label=chk.get_surface())
+        #n.set("fontname", NLELEMENT_VISUALIZER_FONT_NAME)
+        graph.add_node(n)
     for chk in sentence.chunks:
         if chk.link: 
-            graph.add_edge(pydot_ng.Edge("ch_{}".format(chk.cid), "ch_{}".format(chk.link.cid)))
+            graph.add_edge(pydot.Edge("ch_{}".format(chk.cid), "ch_{}".format(chk.link.cid)))
+    return graph
+
+def __get_node_id__(ref):
+    if isinstance(ref, nlelement.TokenReference):
+        return "tk_{}".format(ref.to_tuple())
+    elif isinstance(ref, nlelement.ChunkReference):
+        return "ch_{}".format(ref.to_tuple())
+    raise ValueError("not reference")
+
+def find_edge(graph, src_node_name, dest_node_name):
+    edge = []
+    #dest_nodes = graph.get_node("\"{}\"".format(src_node_name))
+    #src_nodes = graph.get_node("\"{}\"".format(dest_node_name))
+    #dest_nodes = graph.get_node('"'+src_node_name+'"')
+    #src_nodes = graph.get_node('"'+dest_node_name+'"')
+    #print(dest_nodes, src_nodes)
+    #if dest_nodes and src_nodes:
+    edge = graph.get_edge('"'+src_node_name+'"', dst='"'+dest_node_name+'"')
+    print(graph.obj_dict["edges"])
+    print(edge)
+    return edge
+
+def __add_label__(edge, label):
+    item = edge.get("label")
+    prefix = ""
+    if item:
+        edge.set_label("{},{}".format(item, label))
+    else:
+        edge.set_label("{}".format(label))
+    return edge
+
+def document_to_graph(document: nlelement.Document):
+    global NLELEMENT_VISUALIZER_FONT_NAME
+    graph = pydot.Dot()
+    graph.set("charset", "UTF-8")
+    graph.set_node_defaults(fontname=NLELEMENT_VISUALIZER_FONT_NAME, fontsize=32)
+    graph.set_edge_defaults(fontname=NLELEMENT_VISUALIZER_FONT_NAME, fontsize=12)
+    for sentence in document.sentences:
+        for chk in sentence.chunks:
+            n = pydot.Node(__get_node_id__(nlelement.make_reference(chk)), label=chk.get_surface())
+            #n.set("fontname", NLELEMENT_VISUALIZER_FONT_NAME)
+            graph.add_node(n)
+        for chk in sentence.chunks:
+            if chk.link: 
+                graph.add_edge(pydot.Edge(
+                    __get_node_id__(nlelement.make_reference(chk)),
+                    __get_node_id__(nlelement.make_reference(chk.link))
+                ))
+            for tok in chk.tokens:
+                for case, coref in tok.coreference_link.items():
+                    ant_chk_ref = document.chunkref_from_tokenref(coref.antecedent_ref)
+                    if ant_chk_ref:
+                        ant_node_id = __get_node_id__(ant_chk_ref)
+                        ana_node_id = __get_node_id__(nlelement.make_reference(chk))
+                        edges = find_edge(graph, ant_node_id, ana_node_id)
+                        if not edges:
+                            edge = pydot.Edge(ant_node_id, ana_node_id, style="dotted")
+                            graph.add_edge(edge)
+                        else:
+                            edge = edges[0]
+                        __add_label__(edge, case)
+                if hasattr(tok, "semroles"):
+                    for semrole, semarg in tok.semroles.items():
+                        ant_chk_ref = document.chunkref_from_tokenref(semarg)
+                        if ant_chk_ref:
+                            ant_node_id = __get_node_id__(ant_chk_ref)
+                            ana_node_id = __get_node_id__(nlelement.make_reference(chk))
+                            edges = find_edge(graph, ant_node_id, ana_node_id)
+                            if not edges:
+                                edge = pydot.Edge(ant_node_id, ana_node_id, style="dotted")
+                                graph.add_edge(edge)
+                            else:
+                                edge = edges[0]
+                            __add_label__(edge, semrole)
     return graph
 
 if __name__ == "__main__":
     from test import testsamplemaker
     samples = testsamplemaker.NlElementSampleMaker()
-    plot_graph(to_graph(samples.sample1().sentences[0]), block=True)
+    plot_graph(to_graph(samples.sample1()), block=True)
