@@ -124,7 +124,7 @@ def document_to_graph(document: nlelement.Document):
                         ana_node_id = __get_node_id__(nlelement.make_reference(chk))
                         edges = find_edge(graph, ant_node_id, ana_node_id)
                         if not edges:
-                            edge = pydot.Edge(ant_node_id, ana_node_id, style="dotted")
+                            edge = pydot.Edge(ant_node_id, ana_node_id, style="dashed")
                             graph.add_edge(edge)
                         else:
                             edge = edges[0]
@@ -137,11 +137,42 @@ def document_to_graph(document: nlelement.Document):
                             ana_node_id = __get_node_id__(nlelement.make_reference(chk))
                             edges = find_edge(graph, ant_node_id, ana_node_id)
                             if not edges:
-                                edge = pydot.Edge(ant_node_id, ana_node_id, style="dotted")
+                                edge = pydot.Edge(ant_node_id, ana_node_id, style="dashed")
                                 graph.add_edge(edge)
                             else:
                                 edge = edges[0]
                             __add_label__(edge, semrole)
+                if hasattr(tok, "semrole"):
+                    for semrole, semargs in tok.semrole.items():
+                        for semarg in filter(lambda a: a.score > 0.5, semargs):
+                            ant_chk_ref = document.chunkref_from_tokenref(semarg.ana_ref())
+                            if ant_chk_ref:
+                                ant_node_id = __get_node_id__(ant_chk_ref)
+                                ana_node_id = __get_node_id__(nlelement.make_reference(chk))
+                                edge = pydot.Edge(ant_node_id, ana_node_id, weight=0.01, style="dotted", color="red")
+                                graph.add_edge(edge)
+                                __add_label__(edge, semrole)
+                if hasattr(tok, "predicate_term"):
+                    for case, args in tok.predicate_term.items():
+                        for arg in filter(lambda a: a.score > 0.5, args):
+                            ant_chk_ref = document.chunkref_from_tokenref(arg.ana_ref())
+                            if ant_chk_ref:
+                                ant_node_id = __get_node_id__(ant_chk_ref)
+                                ana_node_id = __get_node_id__(nlelement.make_reference(chk))
+                                edge = pydot.Edge(ant_node_id, ana_node_id, weight=0.01, style="dotted", color="red")
+                                graph.add_edge(edge)
+                                __add_label__(edge, case)
+                if hasattr(tok, "coreference"):
+                    for arg in filter(lambda a: a.score > 0.5, tok.coreference):
+                        ant_chk_ref = document.chunkref_from_tokenref(arg.ana_ref())
+                        if ant_chk_ref:
+                            ant_node_id = __get_node_id__(ant_chk_ref)
+                            ana_node_id = __get_node_id__(nlelement.make_reference(chk))
+                            edge = pydot.Edge(ant_node_id, ana_node_id, weight=0.01, style="dotted", color="red")
+                            graph.add_edge(edge)
+                            __add_label__(edge, "coref")
+
+                
     return graph
 
 if __name__ == "__main__":
