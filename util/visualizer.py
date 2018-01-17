@@ -24,8 +24,8 @@ except ImportError:
     pydot_imported = False
 
 NLELEMENT_VISUALIZER_FONT_NAME = "Yu Gothic UI"
-#if "USERPROFILE" not in os.environ:
-#    NLELEMENT_VISUALIZER_FONT_NAME = "arialuni.ttf"
+if "USERPROFILE" not in os.environ:
+    NLELEMENT_VISUALIZER_FONT_NAME = "Takao Gothic"
     
 
 def plot_graph(graph, block=False):
@@ -86,8 +86,8 @@ def find_edge(graph, src_node_name, dest_node_name):
     #print(dest_nodes, src_nodes)
     #if dest_nodes and src_nodes:
     edge = graph.get_edge('"'+src_node_name+'"', dst='"'+dest_node_name+'"')
-    print(graph.obj_dict["edges"])
-    print(edge)
+    #print(graph.obj_dict["edges"])
+    #print(edge)
     return edge
 
 def __add_label__(edge, label):
@@ -144,7 +144,7 @@ def document_to_graph(document: nlelement.Document):
                             __add_label__(edge, semrole)
                 if hasattr(tok, "semrole"):
                     for semrole, semargs in tok.semrole.items():
-                        for semarg in filter(lambda a: a.score > 0.5, semargs):
+                        for semarg in filter(lambda a: a.probable > 0.5, semargs):
                             ant_chk_ref = document.chunkref_from_tokenref(semarg.ana_ref())
                             if ant_chk_ref:
                                 ant_node_id = __get_node_id__(ant_chk_ref)
@@ -154,8 +154,9 @@ def document_to_graph(document: nlelement.Document):
                                 __add_label__(edge, semrole)
                 if hasattr(tok, "predicate_term"):
                     for case, args in tok.predicate_term.items():
-                        for arg in filter(lambda a: a.score > 0.5, args):
-                            ant_chk_ref = document.chunkref_from_tokenref(arg.ana_ref())
+                        for arg in filter(lambda a: a.label == 1.0, args):
+                            ant_chk_ref = document.chunkref_from_tokenref(arg.ant_ref())
+                            print(ant_chk_ref)
                             if ant_chk_ref:
                                 ant_node_id = __get_node_id__(ant_chk_ref)
                                 ana_node_id = __get_node_id__(nlelement.make_reference(chk))
@@ -163,8 +164,9 @@ def document_to_graph(document: nlelement.Document):
                                 graph.add_edge(edge)
                                 __add_label__(edge, case)
                 if hasattr(tok, "coreference"):
-                    for arg in filter(lambda a: a.score > 0.5, tok.coreference):
-                        ant_chk_ref = document.chunkref_from_tokenref(arg.ana_ref())
+                    for arg in filter(lambda a: a.label == 1.0, tok.coreference):
+                        ant_chk_ref = document.chunkref_from_tokenref(arg.ant_ref())
+                        #print(ant_chk_ref)
                         if ant_chk_ref:
                             ant_node_id = __get_node_id__(ant_chk_ref)
                             ana_node_id = __get_node_id__(nlelement.make_reference(chk))
