@@ -112,10 +112,11 @@ def document_to_graph(document: nlelement.Document):
             graph.add_node(n)
         for chk in sentence.chunks:
             if chk.link: 
-                graph.add_edge(pydot.Edge(
+                e = pydot.Edge(
                     __get_node_id__(nlelement.make_reference(chk)),
-                    __get_node_id__(nlelement.make_reference(chk.link))
-                ))
+                    __get_node_id__(nlelement.make_reference(chk.link)), weight=10
+                )
+                graph.add_edge(e)
             for tok in chk.tokens:
                 for case, coref in tok.coreference_link.items():
                     ant_chk_ref = document.chunkref_from_tokenref(coref.antecedent_ref)
@@ -124,7 +125,7 @@ def document_to_graph(document: nlelement.Document):
                         ana_node_id = __get_node_id__(nlelement.make_reference(chk))
                         edges = find_edge(graph, ant_node_id, ana_node_id)
                         if not edges:
-                            edge = pydot.Edge(ant_node_id, ana_node_id, style="dashed")
+                            edge = pydot.Edge(ant_node_id, ana_node_id, weight=0.1, style="dashed")
                             graph.add_edge(edge)
                         else:
                             edge = edges[0]
@@ -145,7 +146,7 @@ def document_to_graph(document: nlelement.Document):
                 if hasattr(tok, "semrole"):
                     for semrole, semargs in tok.semrole.items():
                         for semarg in filter(lambda a: a.probable > 0.5, semargs):
-                            ant_chk_ref = document.chunkref_from_tokenref(semarg.ana_ref())
+                            ant_chk_ref = document.chunkref_from_tokenref(semarg.ant_ref())
                             if ant_chk_ref:
                                 ant_node_id = __get_node_id__(ant_chk_ref)
                                 ana_node_id = __get_node_id__(nlelement.make_reference(chk))
@@ -156,7 +157,7 @@ def document_to_graph(document: nlelement.Document):
                     for case, args in tok.predicate_term.items():
                         for arg in filter(lambda a: a.label == 1.0, args):
                             ant_chk_ref = document.chunkref_from_tokenref(arg.ant_ref())
-                            print(ant_chk_ref)
+                            #print(ant_chk_ref)
                             if ant_chk_ref:
                                 ant_node_id = __get_node_id__(ant_chk_ref)
                                 ana_node_id = __get_node_id__(nlelement.make_reference(chk))
@@ -170,7 +171,7 @@ def document_to_graph(document: nlelement.Document):
                         if ant_chk_ref:
                             ant_node_id = __get_node_id__(ant_chk_ref)
                             ana_node_id = __get_node_id__(nlelement.make_reference(chk))
-                            edge = pydot.Edge(ant_node_id, ana_node_id, weight=0.01, style="dotted", color="red")
+                            edge = pydot.Edge(ant_node_id, ana_node_id, weight=0.01, style="dotted", color="blue")
                             graph.add_edge(edge)
                             __add_label__(edge, "coref")
 
