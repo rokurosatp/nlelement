@@ -453,6 +453,8 @@ class CabochaLoader:
                                 if entity_tup[0] in self.entity_ids:
                                     if entity_tup[1] != 1.0:
                                         continue
+                                    if key == "eq":
+                                        key = "coref"
                                     if not hasattr(tok, "coreference_link"):
                                         tok.coreference_link = dict()
                                     if key not in tok.coreference_link:
@@ -681,6 +683,7 @@ class CabochaDumper:
                         ref = value.antecedent_ref
                         if not hasattr(tok, "entity_links"):
                                 tok.entity_links = dict()
+                        key = 'eq' if key == "coref" else key
                         label_key = key if dump_type != "result" else "label_"+key
                         if label_key not in tok.entity_links:
                             tok.entity_links[label_key] = []
