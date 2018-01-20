@@ -404,6 +404,7 @@ class CabochaLoader:
     def __resolve_entity_id__(self, doc):
         """書かれていたidの一覧をすべて解決してtokenのメンバに代入
         """
+        last_entities = {}
         #print("\nresolve entity id")
         for tok in nlelement.tokens(doc):
             if hasattr(tok, "entity_links"):
@@ -426,8 +427,10 @@ class CabochaLoader:
                                     )
                         elif key == "eq":
                             for entity_tup in value:
-                                if entity_tup[0] in self.entity_ids:
-                                    #print('eq_resolve')
+                                if entity_tup[0] in last_entities:
+                                    ana_ref = nlelement.make_reference(tok)
+                                    ant_tok = last_entities[entity_tup[0]]
+                                    ant_ref = nlelement.make_reference(ant_tok)
                                     if not hasattr(tok, 'coreference'):
                                         setattr(tok, 'coreference', [])
                                     ant_tok = self.entity_ids[entity_tup[0]]
@@ -438,6 +441,7 @@ class CabochaLoader:
                                             *ana_ref.to_tuple(), *ant_ref.to_tuple(), *entity_tup[1:]
                                         )
                                     )
+                                last_entities[entity_tup[0]] = nlelement.make_reference(tok)
                         else:
                             for entity_tup in value:
                                 if entity_tup in self.entity_ids:
@@ -457,11 +461,20 @@ class CabochaLoader:
                     for key, value in tok.entity_links.items():
                         if key in ['ga', 'o', 'ni', "eq"]:
                             for entity_tup in value:
-                                if entity_tup[0] in self.entity_ids:
+                                if key == "eq":
+                                    if entity_tup[0] in last_entities:
+                                        ana_ref = nlelement.make_reference(tok)
+                                        ant_tok = last_entities[entity_tup[0]]
+                                        ant_ref = nlelement.make_reference(ant_tok)
+                                        if not hasattr(tok, "coreference_link"):
+                                            tok.coreference_link = dict()
+                                        tok.coreference_link[key] = nlelement.CoreferenceEntry(
+                                            ana_ref, ant_ref, None, None, ''
+                                        )
+                                    last_entities[entity_tup[0]] = nlelement.make_reference(tok)
+                                elif entity_tup[0] in self.entity_ids:
                                     if entity_tup[1] != 1.0:
                                         continue
-                                    if key == "eq":
-                                        key = "coref"
                                     if not hasattr(tok, "coreference_link"):
                                         tok.coreference_link = dict()
                                     if key not in tok.coreference_link:
