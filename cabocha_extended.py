@@ -702,7 +702,8 @@ class CabochaDumper:
                             refered_entities.append(ant_ref)
         return refered_entities
     @staticmethod
-    def __set_entity_links__(document: nlelement.Document, entity_id_table, dump_type='scored_output'):
+    def __set_entity_links__(document: nlelement.Document, coref_id_table, entity_id_table, dump_type='scored_output'):
+        coref_id = 1
         if dump_type in ['label', 'result']:
             for tok in nlelement.tokens(document):
                 if hasattr(tok, "coreference_link"):
@@ -710,28 +711,40 @@ class CabochaDumper:
                         ref = value.antecedent_ref
                         if not hasattr(tok, "entity_links"):
                                 tok.entity_links = dict()
-                        key = 'eq' if key == "coref" else key
-                        label_key = key if dump_type != "result" else "label_"+key
-                        if label_key not in tok.entity_links:
-                            tok.entity_links[label_key] = []
-                        if ref is not None and not isinstance(ref, nlelement.ExoReference) and ref.to_tuple() in entity_id_table:
-                            tok.entity_links[label_key].append(
-                                (entity_id_table[ref.to_tuple()], 1.0, 0.0)
-                            )
-                        elif isinstance(ref, nlelement.ExoReference):
-                            tok.entity_links[label_key].append(
-                                ("exo{}".format(ref.exo_value if ref.exo_value <= 2 else "g"), 1.0, 0.0)
-                            )
-                        elif ref.to_tuple()[0] == -2:
-                            exo_value = - (ref.to_tuple()[1] + 1)
-                            tok.entity_links[label_key].append(
-                                ("exo{}".format(exo_value if exo_value <= 2 else "g"), 1.0, 0.0)
-                            )
-                        elif dump_type == 'result':
-                            # ↑外界照応が適用されると非推奨になるかも
-                            tok.entity_links[label_key].append(
-                                (-1, 1.0, 0.0)
-                            )
+                        if key == "coref":
+                            label_key = "eq" if dump_type != "result" else "label_eq"
+                            if label_key not in tok.entity_links:
+                                tok.entity_links[label_key] = []
+                            if ref is not None and ref.to_tuple() in coref_id_table:
+                                coref_id_table[nlelement.make_reference(tok)] = coref_id_table[ref.to_tuple()]
+                                tok.entity_links[label_key].append(
+                                    (coref_id_table[ref.to_tuple()], 1.0, 0.0)
+                                )
+                            elif dump_type == 'result':
+                                # ↑外界照応が適用されると非推奨になるかも
+                                tok.entity_links[label_key].append(
+                                    (-1, 1.0, 0.0)
+                                )
+                            else:
+                                coref_id_table[ref.to_tuple()] = coref_id
+                                coref_id_table[nlelement.make_reference(tok)] = coref_id
+                                coref_id += 1
+                                tok.entity_links[label_key].append(
+                                    (coref_id_table[ref.to_tuple()], 1.0, 0.0)
+                                )
+                        else:
+                            label_key = key if dump_type != "result" else "label_"+key
+                            if label_key not in tok.entity_links:
+                                tok.entity_links[label_key] = []
+                            if ref is not None and ref.to_tuple() in entity_id_table:
+                                tok.entity_links[label_key].append(
+                                    (entity_id_table[ref.to_tuple()], 1.0, 0.0)
+                                )
+                            elif dump_type == 'result':
+                                # ↑外界照応が適用されると非推奨になるかも
+                                tok.entity_links[label_key].append(
+                                    (-1, 1.0, 0.0)
+                                )
                 if hasattr(tok, "semroles"):
                     for key, value in tok.semroles.items():
                         label_key = key if dump_type != "result" else "label_"+key
@@ -775,7 +788,13 @@ class CabochaDumper:
                             tok.entity_links = dict()
                         if 'eq' not in tok.entity_links:
                             tok.entity_links['eq'] = []
-                        tok.entity_links['eq'].append((entity_id_table[ref.to_tuple()], value.label, value.probable))
+                        if ref.to_tuple() in coref_id_table:
+                            coref_id_table[nlelement.make_reference(tok)] = coref_id_table[ref.to_tuple()]
+                        else:
+                            coref_id_table[ref.to_tuple()] = coref_id
+                            coref_id_table[nlelement.make_reference(tok)] = coref_id
+                            coref_id += 1        
+                        tok.entity_links['eq'].append((coref_id_table[ref.to_tuple()], value.label, value.probable))
                 if hasattr(tok, "semrole"):
                     for key, values in tok.semrole.items():
                         for value in values:
@@ -805,12 +824,13 @@ class CabochaDumper:
         for ent in del_list:
             refered_entities.remove(ent)
         del_list = None
-
+        
         entity_id_table = dict()
         for e_id, ref in enumerate(refered_entities):
             setattr(document.refer(ref), "entity_id", e_id)
             entity_id_table[ref.to_tuple()] = e_id
-        CabochaDumper.__set_entity_links__(document, entity_id_table, dump_type=dump_type)
+        coref_id_table = {}
+        CabochaDumper.__set_entity_links__(document, coref_id_table, entity_id_table, dump_type=dump_type)
     @staticmethod
     def postproccess_doc(document: nlelement.Document):
         for tok in nlelement.tokens(document):
