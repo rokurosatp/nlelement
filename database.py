@@ -6,6 +6,8 @@ from . import myprogress
 from . import nlelement
 from . import loadercommon
 
+EXOREFERENCE_ID_BEGIN = -10  # 外界照応IDはDB上では-10から負の方向に進める EXOID_DB = (EXOID_ORG + 10)
+
 def __get_sqlpath__(filename):
     """このライブラリが保持しているsqlファイルのパスを取得
     """
@@ -18,13 +20,14 @@ def __get_sqlcode__(filename):
     return result
 
 class DatabaseLoader:
-    def __init__(self, filename):
+    def __init__(self, filename, load_exophora=False):
         self.connector = sqlite3.connect(filename)
         self.chunkid_contains_list = dict()
         self.chunkid_localize_table = dict()
         #self.tokenid_localize_table = dict()
         self.seeking_sid = -1
         self.file = None
+        self.load_exophora = load_exophora
     def __del__(self):
         if self.connector:
             self.connector.close()
@@ -269,7 +272,10 @@ class DatabaseLoader:
             if hasattr(token, 'semroles'):
                 for semrole, semtok_ref in token.semroles.items():
                     pred_id = self.__refer_token_id__(cursor, doc_id, nlelement.make_reference(token))
-                    semtok_id = self.__refer_token_id__(cursor, doc_id, semtok_ref)
+                    if not isinstance(semtok_ref, nlelement.ExoReference):
+                        semtok_id = EXOREFERENCE_ID_BEGIN - semtok_ref.exo_value
+                    else:
+                        semtok_id = self.__refer_token_id__(cursor, doc_id, semtok_ref)
                     if pred_id and pred_id >= 0:
                         cursor.execute('INSERT INTO SemanticRole(PREDICATE, SEMROLE, ANTECEDENT) VALUES (?, ?, ?);', (pred_id, semrole, semtok_id))
                     else:
@@ -295,7 +301,10 @@ class DatabaseLoader:
             for name, coref in token.coreference_link.items():
                 if name == 'coref':
                     anaphora_id = self.__refer_token_id__(cursor, doc_id, coref.anaphora_ref)
-                    antecedent_id = self.__refer_token_id__(cursor, doc_id, coref.antecedent_ref)
+                    if not isinstance(coref.antecedent_ref, nlelement.ExoReference):
+                        antecedent_id = EXOREFERENCE_ID_BEGIN - coref.antecedent_ref.exo_value
+                    else:
+                        antecedent_id = self.__refer_token_id__(cursor, doc_id, coref.antecedent_ref)
                     if anaphora_id and anaphora_id >= 0:
                         try:
                             cursor.execute(
@@ -311,8 +320,11 @@ class DatabaseLoader:
                         #print('ana: {0}, ant: {1}'.format(anaphora_id, antecedent_id), file=self.file)
                 elif name in case_set:
                     case = name# case_normalize_table[name]
-                    anaphora_id = self.__refer_token_id__(cursor, doc_id, coref.anaphora_ref)
-                    antecedent_id = self.__refer_token_id__(cursor, doc_id, coref.antecedent_ref)
+                    anaphora_id = self.__refer_token_id__(cursor, doc_id, coref.anaphora_ref)                    
+                    if not isinstance(coref.antecedent_ref, nlelement.ExoReference):
+                        antecedent_id = EXOREFERENCE_ID_BEGIN - coref.antecedent_ref.exo_value
+                    else:
+                        antecedent_id = self.__refer_token_id__(cursor, doc_id, coref.antecedent_ref)
                     if anaphora_id and anaphora_id >= 0:
                         try:
                             cursor.execute(
@@ -555,8 +567,15 @@ class DatabaseLoader:
             if pred_stid is not None:
                 pred_ref = nlelement.TokenReference(*pred_stid)
                 pred = document.refer(pred_ref)
-                ant_ref= nlelement.TokenReference(*ant_stid) if ant_stid is not None else None
-                if ant_ref:
+                if ant_stid is not None:
+                    ant_ref= nlelement.TokenReference(*ant_stid)
+                elif ant_token_id <= EXOREFERENCE_ID_BEGIN:
+                    ant_ref = nlelement.ExoReference(-ant_token_id+EXOREFERENCE_ID_BEGIN)
+                else:
+                    ant_ref = None
+                if not self.load_exophora and isinstance(ant_ref, nlelement.ExoReference):
+                    continue
+                if ant_ref is not None:
                     if not pred:
                         print('error pred is none({0}, {1})'.format(pred_ref.sid, pred_ref.tid))
                     else:
@@ -589,7 +608,7 @@ class DatabaseLoader:
                 SELECT ID FROM TOKENS WHERE SENTENCE_ID IN (SELECT ID FROM SENTENCES WHERE DOCUMENT_ID = ?)
             )
             """, (doc_id,))
-        for ana_token_id, link_type, ant_token_id in cursor.fetchall():
+        for ana_token_id, link_type, ant_token_id in cursor.fetchall():    
             ana_stid = self.get_token_ref(ana_token_id)
             #self.tokenid_localize_table[ana_token_id] \
             #    if ana_token_id in self.tokenid_localize_table else None
@@ -599,11 +618,20 @@ class DatabaseLoader:
             if ana_stid is not None:
                 ana_ref = nlelement.TokenReference(*ana_stid)
                 anaphora = document.refer(ana_ref)
-                ant_ref = nlelement.TokenReference(*ant_stid) if ant_stid is not None else None
+                if ant_stid is not None:
+                    ant_ref= nlelement.TokenReference(*ant_stid)
+                elif ant_token_id <= EXOREFERENCE_ID_BEGIN:
+                    ant_ref = nlelement.ExoReference(-ant_token_id+EXOREFERENCE_ID_BEGIN)
+                else:
+                    ant_ref = None
                 if ant_stid and all(map(lambda x: x>=0, ant_stid)):
                     ant_surface = document.refer(ant_ref).surface 
+                elif isinstance(ant_ref, nlelement.ExoReference):
+                    ant_surface = "Exophora {}".format(ant_ref.exo_value)
                 else:
                     ant_surface = ""
+                if not self.load_exophora and isinstance(ant_ref, nlelement.ExoReference):
+                    continue
                 entry = nlelement.CoreferenceEntry(
                     ana_ref, ant_ref, -1, -1, ant_surface
                     )
@@ -631,10 +659,20 @@ class DatabaseLoader:
                 anaphora = document.refer(ana_ref)
                 ant_ref = nlelement.TokenReference(*ant_stid) if ant_stid is not None else None
                 case_kana = case#case_renormalize_table[case]
+                if ant_stid is not None:
+                    ant_ref= nlelement.TokenReference(*ant_stid)
+                elif ant_token_id <= EXOREFERENCE_ID_BEGIN:
+                    ant_ref = nlelement.ExoReference(-ant_token_id+EXOREFERENCE_ID_BEGIN)
+                else:
+                    ant_ref = None
                 if ant_stid and all(map(lambda x: x>=0, ant_stid)):
                     ant_surface = document.refer(ant_ref).surface 
+                elif isinstance(ant_ref, nlelement.ExoReference):
+                    ant_surface = "Exophora {}".format(ant_ref.exo_value)
                 else:
                     ant_surface = ""
+                if not self.load_exophora and isinstance(ant_ref, nlelement.ExoReference):
+                    continue
                 entry = nlelement.CoreferenceEntry(
                     ana_ref, ant_ref, -1, -1, ant_surface
                     )

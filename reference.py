@@ -40,11 +40,12 @@ class TokenReference:
 class ExoReference:
     """外界のシンボルの参照(未使用)
     """
-    def __init__(self, name=None):
+    def __init__(self, exo_value, name=None):
         if name is None:
             self.name = 'Unknown'
+        self.exo_value = exo_value
     def to_tuple(self):
-        return (-2, -2)
+        return (-2, -self.exo_value)
     def __bool__(self):
         return False
     def __lt__(self, value):
@@ -52,5 +53,5 @@ class ExoReference:
             return self.name < value.name
         return True
     def __repr__(self):
-        return '<Exo: {}>'.format(self.name)
+        return '<Exo{}: {}>'.format(self.exo_value, self.name)
 

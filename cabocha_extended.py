@@ -389,10 +389,17 @@ class CabochaLoader:
                 self.__token_post_process__(chunk, token)
                 sentence.tokens.append(token)
         if doc.sentences and sentence.tokens:
+            self.__add_exophora__()
             self.__resolve_entity_id__(doc)
             self.ids.sent.reset()
             self.entity_ids = dict()
         return docs
+
+    def __add_exophora__(self):
+        for key, reference in [("exo1", nlelement.ExoReference(1)), 
+            ("exo2" , nlelement.ExoReference(2)), 
+            ("exog", nlelement.ExoReference(3))]:
+            self.entity_ids[key] = reference 
 
     def __resolve_entity_id__(self, doc):
         """書かれていたidの一覧をすべて解決してtokenのメンバに代入
@@ -411,7 +418,7 @@ class CabochaLoader:
                                         tok.predicate_term[key] = []
                                     ana_ref = nlelement.make_reference(tok)
                                     ant_tok = self.entity_ids[entity_tup[0]]
-                                    ant_ref = nlelement.make_reference(ant_tok)
+                                    ant_ref = nlelement.make_reference(ant_tok) if not isinstance(ant_tok, nlelement.ExoReference) else ant_tok
                                     tok.predicate_term[key].append(
                                         argument.PredicateArgument(
                                             *ana_ref.to_tuple(), *ant_ref.to_tuple(), key, *entity_tup[1:]
@@ -424,7 +431,7 @@ class CabochaLoader:
                                     if not hasattr(tok, 'coreference'):
                                         setattr(tok, 'coreference', [])
                                     ant_tok = self.entity_ids[entity_tup[0]]
-                                    ant_ref = nlelement.make_reference(ant_tok)
+                                    ant_ref = nlelement.make_reference(ant_tok) if not isinstance(ant_tok, nlelement.ExoReference) else ant_tok
                                     ana_ref = nlelement.make_reference(tok)
                                     tok.coreference.append(
                                         argument.CoreferenceArgument(
@@ -439,7 +446,7 @@ class CabochaLoader:
                                     if key not in tok.semrole:
                                         tok.semrole[key] = []
                                     ant_tok = self.entity_ids[entity_tup]
-                                    ant_ref = nlelement.make_reference(ant_tok)
+                                    ant_ref = nlelement.make_reference(ant_tok) if not isinstance(ant_tok, nlelement.ExoReference) else ant_tok
                                     ana_ref = nlelement.make_reference(tok)
                                     tok.semrole[key].append(
                                         argument.PredicateArgument(
@@ -461,7 +468,7 @@ class CabochaLoader:
                                         tok.coreference_link[key] = []
                                     ana_ref = nlelement.make_reference(tok)
                                     ant_tok = self.entity_ids[entity_tup[0]]
-                                    ant_ref = nlelement.make_reference(ant_tok)
+                                    ant_ref = nlelement.make_reference(ant_tok) if not isinstance(ant_tok, nlelement.ExoReference) else ant_tok
                                     tok.coreference_link[key] = nlelement.CoreferenceEntry(
                                         ana_ref, ant_ref, None, None, ''
                                     )
@@ -470,12 +477,12 @@ class CabochaLoader:
                                 if entity_tup in self.entity_ids:
                                     if entity_tup[1] != 1.0:
                                         continue
-                                    if not hasattr(tok, "semrole"):
+                                    if not hasattr(tok, "semroles"):
                                         tok.semrole = dict()
                                     if key not in tok.semrole:
                                         tok.semrole[key] = []
-                                    ant_tok = self.entity_ids[entity_tup]
-                                    tok.semroles[key] = ant_tok
+                                    ant_tok = self.entity_ids[entity_tup[0]]
+                                    tok.semroles[key] = nlelement.make_reference(ant_tok) if not isinstance(ant_tok, nlelement.ExoReference) else ant_tok
                 delattr(tok, "entity_links")
 
     def __load_chunk__(self, line, sid):
@@ -590,22 +597,29 @@ class CabochaLoader:
             if len(tup) == 1:
                 tup = (tup[0], 1.0, 0.0)
             key = left
+            
             if key in ['ga', 'o', 'ni']:
-                if len(tup) == 3:
+                if len(tup) == 3:                   
                     if key not in tok.entity_links:
                         tok.entity_links[key] = []
-                    tok.entity_links[key].append((int(tup[0]), float(tup[1]), float(tup[2])))
+                    mt = re.match(r"exo([\dg])", tup[0])
+                    ref_id = int(tup[0]) if not mt else tup[0]
+                    tok.entity_links[key].append((ref_id, float(tup[1]), float(tup[2])))
             elif key == 'eq':
                 #print('eq_load {}')                            
                 if len(tup) == 3:
                     if key not in tok.entity_links:
                         tok.entity_links[key] = []
-                    tok.entity_links[key].append((int(tup[0]), float(tup[1]), float(tup[2])))
+                    mt = re.match(r"exo([\dg])", tup[0])
+                    ref_id = int(tup[0]) if not mt else tup[0]
+                    tok.entity_links[key].append((ref_id, float(tup[1]), float(tup[2])))
             else:
                 if key not in tok.entity_links:
                     tok.entity_links[key] = []
                 try:
-                    tok.entity_links[key].append((int(tup[0]), float(tup[1]), float(tup[2])))
+                    mt = re.match(r"exo([\dg])", tup[0])
+                    ref_id = int(tup[0]) if not mt else tup[0]
+                    tok.entity_links[key].append((ref_id, float(tup[1]), float(tup[2])))
                 except ValueError as e:
                     raise ValueError(str(e)+"{}".format(tup))
     def __token_post_process__(self, chunk, token):
@@ -687,9 +701,18 @@ class CabochaDumper:
                         label_key = key if dump_type != "result" else "label_"+key
                         if label_key not in tok.entity_links:
                             tok.entity_links[label_key] = []
-                        if ref is not None and ref.to_tuple() in entity_id_table:
+                        if ref is not None and not isinstance(ref, nlelement.ExoReference) and ref.to_tuple() in entity_id_table:
                             tok.entity_links[label_key].append(
                                 (entity_id_table[ref.to_tuple()], 1.0, 0.0)
+                            )
+                        elif isinstance(ref, nlelement.ExoReference):
+                            tok.entity_links[label_key].append(
+                                ("exo{}".format(ref.exo_value if ref.exo_value <= 2 else "g"), 1.0, 0.0)
+                            )
+                        elif ref.to_tuple()[0] == -2:
+                            exo_value = - (ref.to_tuple()[1] + 1)
+                            tok.entity_links[label_key].append(
+                                ("exo{}".format(exo_value if exo_value <= 2 else "g"), 1.0, 0.0)
                             )
                         elif dump_type == 'result':
                             # ↑外界照応が適用されると非推奨になるかも
