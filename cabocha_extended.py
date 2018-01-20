@@ -716,7 +716,7 @@ class CabochaDumper:
                             if label_key not in tok.entity_links:
                                 tok.entity_links[label_key] = []
                             if ref is not None and ref.to_tuple() in coref_id_table:
-                                coref_id_table[nlelement.make_reference(tok)] = coref_id_table[ref.to_tuple()]
+                                coref_id_table[nlelement.make_reference(tok).to_tuple()] = coref_id_table[ref.to_tuple()]
                                 tok.entity_links[label_key].append(
                                     (coref_id_table[ref.to_tuple()], 1.0, 0.0)
                                 )
@@ -727,7 +727,7 @@ class CabochaDumper:
                                 )
                             else:
                                 coref_id_table[ref.to_tuple()] = coref_id
-                                coref_id_table[nlelement.make_reference(tok)] = coref_id
+                                coref_id_table[nlelement.make_reference(tok).to_tuple()] = coref_id
                                 coref_id += 1
                                 tok.entity_links[label_key].append(
                                     (coref_id_table[ref.to_tuple()], 1.0, 0.0)
