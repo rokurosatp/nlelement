@@ -1,3 +1,4 @@
+import sys
 import os
 import io
 from pathlib import Path
@@ -29,7 +30,11 @@ if "USERPROFILE" not in os.environ:
     
 
 def plot_graph(graph, block=False):
-    png_str = graph.create_png(prog="dot")
+    try:
+        png_str = graph.create_png(prog="dot")
+    except pydot.InvocationException:
+        print(graph.to_string(), file=sys.stderr)
+        raise
     sio = io.BytesIO()
     sio.write(png_str)
     sio.seek(0)
@@ -94,7 +99,7 @@ def __add_label__(edge, label):
     item = edge.get("label")
     prefix = ""
     if item:
-        edge.set_label("{},{}".format(item, label))
+        edge.set_label("{}-{}".format(item, label))
     else:
         edge.set_label("{}".format(label))
     return edge
