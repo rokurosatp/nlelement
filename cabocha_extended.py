@@ -720,17 +720,25 @@ class CabochaDumper:
                                 tok.entity_links[label_key].append(
                                     (coref_id_table[ref.to_tuple()], 1.0, 0.0)
                                 )
+                            elif ref is not None:
+                                coref_id_table[ref.to_tuple()] = coref_id
+                                coref_id_table[nlelement.make_reference(tok).to_tuple()] = coref_id
+                                coref_id += 1
+                                ant = document.refer(ref)
+                                if not hasattr(ant, "entity_links"):
+                                    ant.entity_links = {}
+                                if label_key not in ant.entity_links:
+                                    ant.entity_links[label_key] = []
+                                ant.entity_links[label_key].append(
+                                    (coref_id_table[ref.to_tuple()], 1.0, 0.0)
+                                )
+                                tok.entity_links[label_key].append(
+                                    (coref_id_table[ref.to_tuple()], 1.0, 0.0)
+                                )
                             elif dump_type == 'result':
                                 # ↑外界照応が適用されると非推奨になるかも
                                 tok.entity_links[label_key].append(
                                     (-1, 1.0, 0.0)
-                                )
-                            else:
-                                coref_id_table[ref.to_tuple()] = coref_id
-                                coref_id_table[nlelement.make_reference(tok).to_tuple()] = coref_id
-                                coref_id += 1
-                                tok.entity_links[label_key].append(
-                                    (coref_id_table[ref.to_tuple()], 1.0, 0.0)
                                 )
                         else:
                             label_key = key if dump_type != "result" else "label_"+key
