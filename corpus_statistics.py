@@ -48,11 +48,11 @@ class CoreferenceStatTable:
 
     def count(self, entity_dict, doc, sent, chunk, tok):
         
-        if chunk.head_token() == tok:
+        if chunk.head_token() == tok and tok.part in ["名詞", "代名詞"]:
             self.in_head_noun += 1
-        if tok.part == "名詞":    
-            if re.match(r"(これ|それ|あれ|ここ|そこ|あそこ|彼|彼女|あいつ|こいつ|そいつ|)", tok.basic_surface):
-                self.pronoun += 1
+        if tok.part == "代名詞":    
+            #if re.match(r"(これ|それ|あれ|ここ|そこ|あそこ|彼|彼女|あいつ|こいつ|そいつ|)", tok.basic_surface):
+            self.pronoun += 1
 
         if "coref" in tok.coreference_link:
             self.coreference += 1
