@@ -42,8 +42,11 @@ class CoreferenceStatTable:
         self.not_noun_coref = 0
         self.pronoun = 0
         self.coreference = 0
+        self.head_anaphora = 0
+        self.head_antecedent = 0
+        self.entities = 0
 
-    def count(self, doc, sent, chunk, tok):
+    def count(self, entity_dict, doc, sent, chunk, tok):
         
         if chunk.head_token() == tok:
             self.in_head_noun += 1
@@ -55,12 +58,25 @@ class CoreferenceStatTable:
             self.coreference += 1
             if tok.part != "名詞":
                 self.not_noun_coref += 1
+            ana_ref = nlelement.make_reference(tok)
+            ant_ref = tok.coreference_link["coref"].antecedent_ref
+            if doc.chunkref_from_tokenref(ana_ref).head_token().tid == tok.tid:
+                self.head_anaphora += 1
+            if doc.chunkref_from_tokenref(ant_ref).head_token().tid == ant_ref.tid:
+                self.head_antecedent += 1
+            if ant_ref not in entity_dict:
+                entity_dict[ant_ref] = 0
+                entity_dict[nlelement.make_reference(tok)] = 0
+                self.entities += 1
+            else:
+                entity_dict[nlelement.make_reference(tok)] = 0
 
     def count_doc(self, doc):
+        entity_dict = {}
         for sent in doc.sentences:
             for chunk in sent.chunks:
                 for tok in chunk.tokens:
-                    self.count(doc, sent, chunk, tok)
+                    self.count(entity_dict, doc, sent, chunk, tok)
 
     def from_dict(self, dic:dict):
         if "in_head_noun" in dic:
@@ -71,13 +87,22 @@ class CoreferenceStatTable:
             self.pronoun = dic["pronoun"]
         if "coreference" in dic:
             self.coreference = dic["coreference"]
+        if "head_anaphora" in dic:
+            self.head_anaphora = dic["head_anaphora"]
+        if "head_antecedent" in dic:
+            self.head_antecedent = dic["head_antecedent"]
+        if "entities" in dic:
+            self.entities = dic["entities"]
         
     def to_dict(self):
         return {
             "pronoun": self.pronoun,
             "not_noun_coref": self.not_noun_coref,
             "in_head_noun": self.in_head_noun,
-            "coreference": self.coreference
+            "coreference": self.coreference,
+            "head_anaphora": self.head_anaphora,
+            "head_antecedent": self.head_antecedent,
+            "entities": self.entities
         }
 
     def save(self, filename):
