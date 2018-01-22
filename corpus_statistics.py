@@ -60,9 +60,9 @@ class CoreferenceStatTable:
                 self.not_noun_coref += 1
             ana_ref = nlelement.make_reference(tok)
             ant_ref = tok.coreference_link["coref"].antecedent_ref
-            if doc.chunkref_from_tokenref(ana_ref).head_token().tid == tok.tid:
+            if doc.refer(doc.chunkref_from_tokenref(ana_ref)).head_token().tid == tok.tid:
                 self.head_anaphora += 1
-            if doc.chunkref_from_tokenref(ant_ref).head_token().tid == ant_ref.tid:
+            if doc.refer(doc.chunkref_from_tokenref(ant_ref)).head_token().tid == ant_ref.tid:
                 self.head_antecedent += 1
             if ant_ref not in entity_dict:
                 entity_dict[ant_ref] = 0
