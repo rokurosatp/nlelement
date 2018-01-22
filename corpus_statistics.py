@@ -124,7 +124,10 @@ class CoreferenceStatTable:
             "pronoun",
             "not_noun_coref",
             "in_head_noun",
-            "coreference"
+            "coreference",
+            "head_anaphora",
+            "head_antecedent",
+            "entities"
         ]:
             self.__show_item__(name)
 
