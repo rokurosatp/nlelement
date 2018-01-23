@@ -167,7 +167,7 @@ class PredicateStatTable:
                 self.zero_inter.count(key)
             elif ant_chunk in chunk.reverse_links:
                 self.dep_arguments.count(key)
-            elif ant_chunk.particle and "係助詞" in ant_chunk.particle.pos:
+            elif ant_chunk == chunk.link:
                 self.adnom_arguments.count(key)
             else:
                 self.zero_intra.count(key)        
