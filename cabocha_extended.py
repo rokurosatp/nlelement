@@ -429,13 +429,9 @@ class CabochaLoader:
                             for entity_tup in value:
                                 if entity_tup[0] in last_entities:
                                     ana_ref = nlelement.make_reference(tok)
-                                    ant_tok = last_entities[entity_tup[0]]
-                                    ant_ref = nlelement.make_reference(ant_tok)
+                                    ant_ref = last_entities[entity_tup[0]]
                                     if not hasattr(tok, 'coreference'):
                                         setattr(tok, 'coreference', [])
-                                    ant_tok = self.entity_ids[entity_tup[0]]
-                                    ant_ref = nlelement.make_reference(ant_tok) if not isinstance(ant_tok, nlelement.ExoReference) else ant_tok
-                                    ana_ref = nlelement.make_reference(tok)
                                     tok.coreference.append(
                                         argument.CoreferenceArgument(
                                             *ana_ref.to_tuple(), *ant_ref.to_tuple(), *entity_tup[1:]
