@@ -302,9 +302,9 @@ class DatabaseLoader:
                 if name == 'coref':
                     anaphora_id = self.__refer_token_id__(cursor, doc_id, coref.anaphora_ref)
                     if not isinstance(coref.antecedent_ref, nlelement.ExoReference):
-                        antecedent_id = EXOREFERENCE_ID_BEGIN - coref.antecedent_ref.exo_value
-                    else:
                         antecedent_id = self.__refer_token_id__(cursor, doc_id, coref.antecedent_ref)
+                    else:
+                        antecedent_id = EXOREFERENCE_ID_BEGIN - coref.antecedent_ref.exo_value
                     if anaphora_id and anaphora_id >= 0:
                         try:
                             cursor.execute(
@@ -322,9 +322,9 @@ class DatabaseLoader:
                     case = name# case_normalize_table[name]
                     anaphora_id = self.__refer_token_id__(cursor, doc_id, coref.anaphora_ref)                    
                     if not isinstance(coref.antecedent_ref, nlelement.ExoReference):
-                        antecedent_id = EXOREFERENCE_ID_BEGIN - coref.antecedent_ref.exo_value
-                    else:
                         antecedent_id = self.__refer_token_id__(cursor, doc_id, coref.antecedent_ref)
+                    else:
+                        antecedent_id = EXOREFERENCE_ID_BEGIN - coref.antecedent_ref.exo_value
                     if anaphora_id and anaphora_id >= 0:
                         try:
                             cursor.execute(
