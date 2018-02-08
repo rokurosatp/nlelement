@@ -273,9 +273,9 @@ class DatabaseLoader:
                 for semrole, semtok_ref in token.semroles.items():
                     pred_id = self.__refer_token_id__(cursor, doc_id, nlelement.make_reference(token))
                     if not isinstance(semtok_ref, nlelement.ExoReference):
-                        semtok_id = EXOREFERENCE_ID_BEGIN - semtok_ref.exo_value
-                    else:
                         semtok_id = self.__refer_token_id__(cursor, doc_id, semtok_ref)
+                    else:
+                        semtok_id = EXOREFERENCE_ID_BEGIN - semtok_ref.exo_value
                     if pred_id and pred_id >= 0:
                         cursor.execute('INSERT INTO SemanticRole(PREDICATE, SEMROLE, ANTECEDENT) VALUES (?, ?, ?);', (pred_id, semrole, semtok_id))
                     else:
