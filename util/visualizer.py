@@ -48,7 +48,7 @@ def save_graph(graph, filepath):
         filepath_str = str(filepath)
     else:
         filepath_str = filepath
-    graph.write_png(filepath_str)
+    graph.write_svg(filepath_str)
 
 def to_graph(element):
     """nlelementの特定の要素(Document, Chunk)をpydotのグラフに変換
