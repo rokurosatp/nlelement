@@ -1,4 +1,5 @@
 import unittest
+from nlelement.testutil import testsamplemaker
 from nlelement import nlelement, cabochainput, KNBCInput
 
 
@@ -217,3 +218,33 @@ class CabochaLoaderTest(unittest.TestCase):
         self.assertEqual(sent.chunks[1].tokens[0], sent.tokens[2])
         self.assertEqual(sent.chunks[2].tokens[0], sent.tokens[3])
         file.close()
+
+
+class NLElementTest(unittest.TestCase):
+
+    def setUp(self):
+        self.samples = testsamplemaker.NlElementSampleMaker()
+
+    def test_chunk_property(self):
+        doc = self.samples.sample1()
+        self.assertEqual(doc.sentences[0].chunks[0].head_token(), doc.sentences[0].tokens[0])
+        self.assertEqual(doc.sentences[0].chunks[0].get_func()[0], doc.sentences[0].tokens[1])
+        self.assertEqual(doc.sentences[0].chunks[0].link, doc.sentences[0].chunks[2])
+        self.assertEqual(doc.sentences[0].chunks[1].link, doc.sentences[0].chunks[2])
+        self.assertListEqual(list(doc.sentences[0].chunks[2].reverse_links), [doc.sentences[0].chunks[0], doc.sentences[0].chunks[1]])
+
+    def test_coreference_link(self):
+        doc = self.samples.sample1()
+        doc.get_coreference_labels()
+        doc.get_predicate_labels()
+
+    def test_refer(self):
+        doc = self.samples.sample1()
+        self.assertEqual(doc.refer(nlelement.TokenReference(0, 0)), doc.sentences[0].tokens[0])
+        self.assertEqual(doc.refer(nlelement.ChunkReference(0, 0)), doc.sentences[0].chunks[0])
+        self.assertEqual(doc.refer_sentence(0), doc.sentences[0])
+        
+    def test_make_reference(self):
+        doc = self.samples.sample1()        
+        self.assertEqual(nlelement.make_reference(doc.sentences[0].tokens[0]), nlelement.TokenReference(0, 0))
+        self.assertEqual(nlelement.make_reference(doc.sentences[0].chunks[0]), nlelement.ChunkReference(0, 0))

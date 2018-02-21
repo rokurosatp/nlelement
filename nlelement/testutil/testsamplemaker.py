@@ -23,6 +23,11 @@ class NlElementMaker:
         chunk.func_position = func
         return chunk
 
+    def set_link(self, sentence, chunk_id, link_id):
+        sentence.chunks[chunk_id].link_id = link_id
+        sentence.chunks[chunk_id].link = sentence.chunks[link_id]
+        sentence.chunks[link_id].reverse_links.append(sentence.chunks[chunk_id])
+
     def append_chunk_to_sentence(self, sentence, chunk):
         sentence.chunks.append(chunk)
         for token in chunk.tokens:
@@ -93,8 +98,8 @@ class NlElementSampleMaker:
         chunk.tokens.append(self.maker.token('助け', '動詞'))
         chunk.tokens.append(self.maker.token('た', '助詞'))
         self.maker.append_chunk_to_sentence(sentence, chunk)
-        sentence.chunks[0].link = sentence.chunks[2]
-        sentence.chunks[1].link = sentence.chunks[2]
+        self.maker.set_link(sentence, 0, 2)
+        self.maker.set_link(sentence, 1, 2)
         doc.sentences.append(sentence)
         self.maker.set_id_to_sentences(doc)
         return doc
