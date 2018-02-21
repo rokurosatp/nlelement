@@ -16,8 +16,8 @@ else:
 sys.path.append(str(root_path.parent))
 """
 # ここから、テストするモジュールを取り込む
-from .. import database
-from . import testsamplemaker
+from nlelement import database
+from nlelement.testutil import testsamplemaker
 
 class DatabaseTest(unittest.TestCase):
     def test_external_sql_syntax(self):

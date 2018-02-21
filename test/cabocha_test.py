@@ -1,6 +1,6 @@
 import unittest
 from nlelement import nlelement, cabocha_extended
-from . import testsamplemaker
+from nlelement.testutil import testsamplemaker
 
 
 class CabochaExtendedTest(unittest.TestCase):

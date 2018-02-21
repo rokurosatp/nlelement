@@ -1,5 +1,5 @@
 {
-    "python.unitTest.unittestEnabled": false,
+    "python.unitTest.unittestEnabled": true,
     "python.unitTest.unittestArgs": [
         "-v",
         "-s",
