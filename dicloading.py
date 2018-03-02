@@ -2,7 +2,7 @@ import sys
 import pickle
 from enum import Enum
 from . import KNBCInput
-from . import bccwj, database
+from . import database
 from asa_python import pth_dic
 
 """辞書データを基にしたidの付与と辞書の構築を行う
