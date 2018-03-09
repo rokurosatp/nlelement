@@ -90,6 +90,10 @@ class CabochaLoader:
                 docs.append(doc)
             elif self.line == 'EOS':
                 self.__validate_sentence__(sentence)
+                for ch in sentence.chunks:
+                    if ch.link_id >= 0:
+                        ch.link = sentence.chunks[ch.link_id]
+                        sentence.chunks[ch.link_id].reverse_links.append(ch)
                 doc.sentences.append(sentence)
                 sentence = nlelement.Sentence()
                 sentence.sid = self.ids.sent.get()

@@ -1,10 +1,10 @@
 import os
 import re
 import io
-from . import myprogress
-from . import nlelement
-from . import argument
-from . import loadercommon
+from nlelement import myprogress
+from nlelement import nlelement
+from nlelement import argument
+from nlelement import loadercommon
 
 
 class ChunkMarger:
