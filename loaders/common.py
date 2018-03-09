@@ -60,7 +60,7 @@ class LoadError(Exception):
             positional_expr += str(self.token_i) + '番目の単語'
         result_list.append(positional_expr)
         positional_expr = ''
-        if len(self.file_name) > 0:
+        if self.file_name:
             positional_expr += self.file_name + ' at '
         if self.line_num > 0:
             positional_expr += 'line ' + str(self.line_num)

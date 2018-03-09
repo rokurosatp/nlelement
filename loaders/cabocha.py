@@ -214,8 +214,8 @@ class CabochaLoader:
         """ipa式のフォーマットに対する形態素ロードを行う
         TODO: IPA用の辞書は容易だけしてあるが、使用していないのでバグがあるかも、テスト書いてね
         """
-        token.read = header[7]
-        token.basic_surface = header[6]
+        token.read = header[7] if len(header) > 7 else ''
+        token.basic_surface = header[6] if len(header) > 7 else token.surface
         token.part = header[0]
         token.part_id = loadercommon.part_id[header[0]] if header[0] in loadercommon.part_id else 10
         token.attr1 = header[1]
@@ -286,14 +286,15 @@ class CabochaDumper:
         return result
 
 class CabochaParser:
-    def __init__(self):
+    def __init__(self, encoding="utf8", dic_name="ipadic"):
         self.cabocha_path = "cabocha"
         self.cabocha_args = ["-f", "1", "-n", "1"]
-        self.loader = CabochaLoader()
+        self.loader = CabochaLoader(morph_dic_name=dic_name)
+        self.encoding = encoding
 
     def parse(self, text, sid=0):
-        result = subprocess.run([self.cabocha_path] + self.cabocha_args, input=text, stdout=subprocess.PIPE)
-        docs = self.loader.load(result)
+        result = subprocess.run([self.cabocha_path] + self.cabocha_args, input=text.encode(self.encoding), stdout=subprocess.PIPE)
+        docs = self.loader.load(result.stdout.decode(self.encoding))
         sent = docs[0].sentences[0]
         sent.sid = sid
         for tok in nlelement.tokens(sent):
