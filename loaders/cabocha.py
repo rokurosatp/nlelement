@@ -288,7 +288,7 @@ class CabochaDumper:
 class CabochaParser:
     def __init__(self):
         self.cabocha_path = "cabocha"
-        self.cabocha_args = ["-f", "1"]
+        self.cabocha_args = ["-f", "1", "-n", "1"]
         self.loader = CabochaLoader()
 
     def parse(self, text, sid=0):
