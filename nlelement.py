@@ -1,9 +1,30 @@
+"""日本語テキストに含まれる単語、文節、文、文書と言った要素を階層的なオブジェクトとして実装
+このモジュールはそれぞれのオブジェクトの挙動のみを定義し、ロード、セーブについては外部モジュールで実装します
+
+USAGE:
+    データベース`test.db`から取得したある文書データの内容を表示する
+    ```
+        >>>loader = database.DatabaseLoader("test.db")
+        >>>doc = loader.load_one_sample()[0] # データベースにある文書データ(Document)をランダムに１つロード
+        >>>print(doc)                        # 文書データの内容を表示する
+        <Document OC01_00001_01 詰め将棋の本を...>
+        >>>print(doc.sentences[0])           # 文章データ中の最初の文を表示
+        <Sentence 詰め将棋の本を...>
+        >>>print(doc.sentences[0].chunks[0]) # 文章データ中の最初の文節を表示
+        <Chunk 詰め将棋の 0 0>
+        >>>print(doc.sentences[0].tokens[0]) # 文章データ中の最初の単語を表示
+        <Token 詰め 0 0> 
+    ```
+"""
 import re
 import weakref
 from . import relation
 from .reference import TokenReference, ChunkReference, ExoReference
 
 def make_reference(element):
+    """Sentence, Chunk, Tokenのインスタンスから対応する参照を生成
+    参照はIDのみ保持した
+    """
     if isinstance(element, Chunk):
         return ChunkReference(element.sid, element.cid)
     elif isinstance(element, Token):
@@ -11,9 +32,7 @@ def make_reference(element):
     elif isinstance(element, Sentence):
         return element.sid    
     return None
-"""
-KNBCの入力だけにとどまらなくなってきたので移動
-"""
+
 class Document:
     """文章のインスタンスを保持
     """
@@ -64,6 +83,8 @@ class Document:
                     )
         return result
     def refer(self, ref):
+        """参照オブジェクトからそれに対応するToken, Chunk, Sentenceを取得
+        """
         if isinstance(ref, ChunkReference):
             sentence = self.refer_sentence(ref.sid)
             if sentence:
@@ -129,6 +150,8 @@ class Document:
         return raw_sentence
 
     def get_limited_surface(self):
+        """文字数制限をつけて表層表現を取得[デバッグ用]
+        """
         raw_surface = ''
         for tok in tokens(self):
             raw_surface += tok.surface
@@ -142,8 +165,12 @@ class Document:
         return "<Document: {}{}>".format(self.name, "({})".format(self.get_limited_surface()) if self.sentences else "[empty]")
 
 class Sentence:
-    """
-    文を格納するクラス
+    """文を格納するクラス
+    MEMBERS:
+        * sid - 文ID
+        * chunks - この文が含む文節
+        * tokens - この文が含む単語(これらの単語はchunksが含む単語が含まれている)
+        
     """
     def __init__(self):
         self.chunk_positions = []
@@ -245,8 +272,12 @@ def __is_case__(token):
         return False
     return True
 class CoreferenceEntry:
-    """共参照関係のデータ
-    文内の位置の参照なんだけど引数が爆増えするのでクラスを作ったほうがいいかもしれない
+    """共参照関係＋述語項構造における関係のデータ（ラベル用）
+    照応詞、述語がこのオブジェクトを保持していて、照応詞、述語の参照と先行詞、項の参照を保持する
+    Members:
+            anaphora_ref (TokenReference): 照応詞の参照
+            antecedent_ref (TokenReference): 先行詞の参照
+            link_type (str): 位置関係に基づく関係の種類(dep,adnom,zero)
     """
     def __init__(self, anaphora_ref, antecedent_ref, begin_token=None, end_token=None, surface=None):
         """初期化、生成するときは文内の番号を参照する。
@@ -292,6 +323,8 @@ class CoreferenceEntry:
         return rel
 
 class _ReverseLinkElem:
+    """係り元文節リストの一覧の実装（標準のListとほぼ同じ挙動だが、中身がweakrefになる）
+    """
     def __init__(self):
         self.links = []
 
@@ -333,6 +366,18 @@ class _ReverseLinkElem:
 
 class Chunk:
     """文節チャンクのクラス
+    MEMBER:
+        * sid - 文書から見た文ID
+        * cid - 文から見た文節ID
+        * tokens - 文節が含む単語
+        * head_position - 内容語の位置([太郎]が, 一般[人]に, [歓迎]する)
+        * func_position - 機能語表現の先頭位置(太郎[が], 一般人[に], 還元され[た])助詞の取得などに使用
+        * link_id - 係り先の文節ID
+        * link - 係り先文節
+        * reverse_links - 係り元文節のリスト(複数の文節が係り元の場合がある)
+        * reverse_link_ids - 係り元文節IDのリスト(複数の文節が係り元の場合がある)
+        * case - 文節末尾に格助詞があればその格助詞表層表現
+        * 
     """
     def __init__(self):
         """生情報を構造化する
@@ -354,6 +399,7 @@ class Chunk:
         self.particle = None
         self.chunk_type = ''
 
+    # linkは実際weakrefで実装するが、外部的には普通のオブジェクトに見えるように実装している
     def _get_link(self):
         return self._link() if self._link is not None else None
     def _set_link(self, link_chunk):
@@ -384,6 +430,8 @@ class Chunk:
             self.case = ''
         self.__set_chunk_type__()
     def get_length(self):
+        """表層表現文字列の長さを取得する
+        """
         return sum((token.get_length() for token in self.tokens))
     def __set_chunk_type__(self):
         """文節の種別をchunk_typeメンバに設定（意味役割付与タスク用の属性）
@@ -404,8 +452,6 @@ class Chunk:
                 self.chunk_type = 'copula'
     def is_cand_all(self):
         """文節が先行詞の候補になりうるかの判定
-        COMMENT:
-            基本機能ではないから再利用性を考えると分けておきたいな
         """
         return self.head_token() != None and self.head_token().part == '名詞'
     def get_particle_surf(self):
@@ -490,12 +536,28 @@ class Chunk:
             surface += tok.surface
         return surface
     def __repr__(self):
+        """表層表現の文字列と文章上の位置（文ID, 文節ID）という基本情報を表示[デバッグ用]
+        """
         return "<{}: {}({}, {})>".format("Chunk", self.get_surface(), self.sid, self.cid)
     surface = property(get_surface)
 
 class Token:
     """形態素（単語）のクラス
-    ベースの形を定義しているだけなので
+    MEMBERS:
+        * tid - 単語ID
+        * sid - 文ID
+        * surface - 表層表現
+        * read - 読み
+        * basic_surface - 基本形
+        * part - 品詞
+        * part_id - 品詞ID(非推奨)
+        * attr1 - 品詞中分類
+        * attr2 - 品詞小分類
+        * pos - Part of Speechタグ(品詞-品詞中分類-品詞小分類)
+        * conj_type - 活用型(ex.カ五段、サ変)
+        * conj_form - 活用形(ex.未然形、連用形)
+        * named_entity - 固有表現タグ
+        * named_entity_part - 固有表現タグ上の位置(B|I|O)
     """
     def __init__(self):
         self.tid = 0
@@ -547,26 +609,9 @@ class Token:
         return self.surface
     def __repr__(self):
         return "<{}: {}({}, {})>".format("Token", self.surface, self.sid, self.tid)
-    """
-    def __repr__(self):
-        members = dict()
-        members['id:'] = str(self.tid)
-        members['surf']=self.surface
-        members['read'] = self.read
-        members['base'] = self.basic_surface
-        members['part'] = self.part+'('+str(self.part_id)+')'
-        members['attr1:']=self.attr1
-        members['attr2:']=self.attr2
-        members['sahen:']=str(self.sahen)
-        members['normal:']=str(self.normalnoun)
-        members['adjnoun:']=str(self.adjectivenoun)
-        members['conj_type:']=self.conj_type
-        members['conj_form:']=self.conj_form
-        return repr(members)
-    """
 
 def get_verbchunk_verb(chunk: Chunk):
-    """フレームとのマッチング用に動詞の表現を統一する
+    """フレームとのマッチング用に統一された動詞の表現を取得する
     辞書としてはIPA, UNIDICを想定
     NOTE:アルゴリズムはSynchaのものを流用
     TODO:ASAに完全対応しているかどうかは微妙なのでできたら統一する
@@ -781,7 +826,8 @@ class ReferenceConverter:
         return None
 
 def get_position(doc, obj):
-    """docに所属する指定したオブジェクトあるいはオブジェクト参照の始点positionを取得
+    """docに所属する指定したオブジェクト(Token, Chunk, Sentence)あるいはオブジェクト参照(TokenReference, ChunkReference)
+    の始点position(文字位置)を取得
     """
     if isinstance(obj, (Token, TokenReference)):
         if obj.sid < 0 or obj.tid < 0 or obj.sid >= len(doc.sentences) or obj.tid >= len(doc.sentences[obj.sid].tokens):
@@ -836,6 +882,8 @@ def position_to_token(doc, position):
     return None
 
 class FlatNLElementIterator:
+    """文書データ上の文節や単語をすべて列挙するイテレータ
+    """
     def __init__(self, document):
         self.sentence_iter = iter(document.sentences)
         self.cur_sent = None
@@ -864,6 +912,14 @@ class FlatTokenIterator(FlatNLElementIterator):
         return iter(self.cur_sent.tokens)
 
 def tokens(elem):
+    """指定したオブジェクトが保持している単語(Tokenオブジェクト)を先頭からすべて列挙
+        USAGE1: 文章docが保持している単語を先頭からすべて表示
+            for tok in tokens(doc):
+                print(tok)    
+        USAGE2: 文sentが保持している単語を先頭からすべて表示
+            for tok in tokens(sent):
+                print(tok)
+    """
     if isinstance(elem, Document):
         return FlatTokenIterator(elem)
     elif isinstance(elem, Sentence):
@@ -873,6 +929,15 @@ def tokens(elem):
     raise NotImplementedError
 
 def chunks(elem):
+    """指定したオブジェクトが保持している文節(Chunkオブジェクト)を先頭からすべて列挙
+        
+        USAGE: 文章docが保持している文節を先頭からすべて表示
+            for chunk in chunks(doc):
+                print(chunk)
+        USAGE: 文sentが保持している文節を先頭からすべて表示
+            for chunk in chunks(doc):
+                print(chunk)
+    """
     if isinstance(elem, Document):
         return FlatChunkIterator(elem)
     elif isinstance(elem, Sentence):
