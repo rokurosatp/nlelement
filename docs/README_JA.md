@@ -19,10 +19,8 @@
 
 ### セットアップ
 
-gitリポジトリを作成して、サブモジュールとして追加してください
-
 ```
-git submodule add https://github.com/rokurosatp/nlelement.git nlelement
+pip install git+https://github.com/rokurosatp/nlelement.git
 ```
 
 ### 適当な文をオブジェクトにする
