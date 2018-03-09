@@ -7,6 +7,7 @@ The Version is Beta forever.
 
 * Object Modules for NLP
 * Version: Beta 1.0
+* [日本語の説明文](docs/README_JA.md)
 
 ### How do I get set up? ###
 
