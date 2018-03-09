@@ -1,5 +1,6 @@
 import os
 import re
+import subprocess
 from nlelement import nlelement
 from nlelement import loadercommon
 from .common import LoadError
@@ -283,14 +284,48 @@ class CabochaDumper:
         result += 'B-'+token.named_entity if token.named_entity != '' else 'O'
         result += '\n'
         return result
-def load(path, encoding='utf-8'):
-    if os.path.isdir(path):
-        return load_directory(path, encoding=encoding)
-    return load_file(path, encoding=encoding)
 
-def load_directory(dirname, encoding='utf-8'):
-    loader = CabochaLoader()
-    return loader.load(dirname, encoding=encoding)
+class CabochaParser:
+    def __init__(self):
+        self.cabocha_path = "cabocha"
+        self.cabocha_args = ["-f", "1"]
+        self.loader = CabochaLoader()
+
+    def parse(self, text, sid=0):
+        result = subprocess.run([self.cabocha_path] + self.cabocha_args, input=text, stdout=subprocess.PIPE)
+        docs = self.loader.load(result)
+        sent = docs[0].sentences[0]
+        sent.sid = sid
+        for tok in nlelement.tokens(sent):
+            tok.sid = sid
+        for chk in nlelement.chunks(sent):
+            chk.sid = sid
+        return sent
+
+    def parse_document(self, raw_sentences, delimiter=None, name='cabocha_parsed'):
+        if isinstance(raw_sentences, list):
+            doc = nlelement.Document()
+            doc.name = name
+            for i, raw_sent in enumerate(raw_sentences):
+                sent = self.parse(raw_sent, sid=i)
+                doc.sentences.append(sent)
+            return doc
+        elif isinstance(raw_sentences, str):
+            doc = nlelement.Document()
+            doc.name = name
+            if delimiter is None:
+                for i, raw_sent in enumerate(raw_sentences.splitlines()):
+                    sent = self.parse(raw_sent, sid=i)
+                    doc.sentences.append(sent)
+            else:
+                for i, raw_sent in enumerate(raw_sentences.split(delimiter)):
+                    sent = self.parse(raw_sent, sid=i)
+                    doc.sentences.append(sent)
+            return doc
+        raise ValueError("Cannot parse {} object".format(type(raw_sent)))
+
+def load(text, basename="cabocha_autoload"):
+    return load(text, basename=basename)
 
 def load_file(filename, encoding='utf-8'):
     loader = CabochaLoader()
