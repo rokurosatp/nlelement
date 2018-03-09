@@ -27,7 +27,15 @@ git submodule add https://github.com/rokurosatp/nlelement.git nlelement
 
 ### 適当な文をオブジェクトにする
 
-（CabochaParserがまだ実装されていません）
+```
+from nlelement.loaders import cabocha
+
+parser = cabocha.CabochaParser()
+# ランダムにロードされた文書データがdocに代入される
+sent = parser.parse("太郎はプリウスを買った")    # 文を解析してロード
+
+print(sent.tokens)  # 文中の単語が列挙される
+```
 
 ### 解析済みデータベースからロードする
 
