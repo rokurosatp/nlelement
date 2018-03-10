@@ -103,7 +103,7 @@ class CabochaLoader:
             elif self.line[0] == '#':
                 if self.line[1] == '!':
                     self.__handle_comment__(self.line)
-            elif self.line[0] == '*' or self.line[0] == '+':
+            elif (self.line[0] == '*' or self.line[0] == '+') and self.line[1] == ' ':
                 if chunk:
                     chunk.set_token_info()
                 chunk = self.__load_chunk__(self.line, sentence.sid)
