@@ -1,5 +1,5 @@
 import MeCab
-from .. import nlelement
+from nlelement import nlelement
 
 class MorphUnpacker:
     """素性タプルから形態素としての属性を取得するための変換器
@@ -116,7 +116,7 @@ class MeCabParser:
                 yield node
             node = node.next
 
-    def parse_sentence(self, raw_sentence, sid):
+    def parse_sentence(self, raw_sentence, sid=0):
         lattice = self.manalyzer.createLattice()
         lattice.set_sentence(raw_sentence)
         sentence = nlelement.Sentence()
@@ -129,7 +129,7 @@ class MeCabParser:
             sentence.tokens.append(token)
         return sentence
 
-    def parse_document(self, raw_document, delimiter=None):
+    def parse(self, raw_document, delimiter=None):
         rawsent_iter = None
         if delimiter is None:
             rawsent_iter = raw_document.splitlines()
