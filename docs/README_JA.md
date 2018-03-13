@@ -47,6 +47,7 @@ parser = CabochaParser()
 sent = parser.parse("太郎はプリウスを買った")    # 文を解析してロード
 
 print(sent.tokens)  # 文中の単語が列挙される
+print(sent.chunks)  # 文中の文節が列挙される
 ```
 
 ### 解析済みデータベースからロードする
