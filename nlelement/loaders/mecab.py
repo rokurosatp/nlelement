@@ -36,7 +36,8 @@ class MorphUnpacker:
             # 辞書の検索時に邪魔になりそうなので消す
             if self.basic_surface_normalizer:
                 token.basic_surface = self.basic_surface_normalizer(token.basic_surface)
-            token.read = "-".join(map(lambda i: feature[i], self.read))
+            if len(feature) > max(self.read):
+                token.read = "-".join(map(lambda i: feature[i], self.read))
         return token
 
     @staticmethod
