@@ -25,10 +25,24 @@ pip install git+https://github.com/rokurosatp/nlelement.git
 
 ### 適当な文をオブジェクトにする
 
-```
-from nlelement.loaders import cabocha
+MeCabによる解析（Tokenのみ）
 
-parser = cabocha.CabochaParser()
+```
+from nlelement.loaders import MeCabParser
+
+parser = MeCabParser()
+# ランダムにロードされた文書データがdocに代入される
+sent = parser.parse("太郎はプリウスを買った")    # 文を解析してロード
+
+print(sent.tokens)  # 文中の単語が列挙される
+```
+
+Cabochaによる解析（文節(Chunk)情報、係り受け情報が付加される）
+
+```
+from nlelement.loaders import CabochaParser
+
+parser = CabochaParser()
 # ランダムにロードされた文書データがdocに代入される
 sent = parser.parse("太郎はプリウスを買った")    # 文を解析してロード
 
