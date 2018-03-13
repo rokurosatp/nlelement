@@ -116,7 +116,7 @@ class MeCabParser:
                 yield node
             node = node.next
 
-    def parse_sentence(self, raw_sentence, sid=0):
+    def parse(self, raw_sentence, sid=0):
         lattice = self.manalyzer.createLattice()
         lattice.set_sentence(raw_sentence)
         sentence = nlelement.Sentence()
@@ -129,13 +129,14 @@ class MeCabParser:
             sentence.tokens.append(token)
         return sentence
 
-    def parse(self, raw_document, delimiter=None):
+    def parse_document(self, raw_sentences, delimiter=None, name='mecab_parsed'):
         rawsent_iter = None
         if delimiter is None:
-            rawsent_iter = raw_document.splitlines()
+            rawsent_iter = raw_sentences.splitlines()
         elif isinstance(delimiter, str):
-            rawsent_iter = raw_document.split(delimiter)
+            rawsent_iter = raw_sentences.split(delimiter)
         document = nlelement.Document()
+        document.name = name
         for i, raw_sent in enumerate(rawsent_iter):
-            document.sentences.append(self.parse_sentence(raw_sent, i))
+            document.sentences.append(self.parse(raw_sent, i))
         return document
